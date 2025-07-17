@@ -48,12 +48,11 @@ Les contributions sont bienvenues !
 3. Commit tes changements (`git commit -m 'Ajout de la fonctionnalité'`)
 4. Push sur ta branche (`git push origin feature/ta-fonctionnalite`)
 5. Ouvre une Pull Request
-```
-📧 **Contact**
+## 📧 Contact
 
-Auteur : FOFANA ISSOUF  
-Email : 151082137+issouf14-DEV@users.noreply.github.com  
-GitHub : [https://github.com/issouf14-DEV](https://github.com/issouf14-DEV)
+- **Auteur** : FOFANA ISSOUF
+- **Email** : 151082137+issouf14-DEV@users.noreply.github.com
+- **GitHub** :https://github.com/issouf14-DEV
 
 ---
 
