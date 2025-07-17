@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>La météo autour de moi</title>
+
+ <!-- Tailwind CSS -->
+ <script src="https://cdn.tailwindcss.com"></script>
+ <!-- jQuery -->
+ <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+ <!-- Font Awesome -->
+ <script src="https://kit.fontawesome.com/114918d9eb.js" crossorigin="anonymous"></script>
+</head>
+
+<body class="bg-blue-50 pt-20  dark:bg-gray-900 dark:text-white"> <!-- Padding top pour le header fixe -->
+
+  <main
+    class="p-10 text-center   min-h-[20px] bg-gradient-to-r from-gray-100 to-gray-300 shadow-xl mx-auto mt-1 rounded">
+    <h1 id="dynamic-title" class="text-4xl text-yellow-600 font-extrabold dark:text-yellow-300 mb-6"></h1>
+    <p id="dynamic-text" class="text-lg text-yellow-600 dark:text-gray-200"></p>
+  </main>
+<!-- Modal d'authentification -->
+
+<div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded-lg w-full max-w-md">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold">Authentification</h2>
+      <button id="close-auth-modal" class="text-gray-600 hover:text-red-500 text-xl hidden">&times;</button>
+    </div>
+
+    <!-- Connexion -->
+    <form id="login-form" class="space-y-4">
+      <input type="text" id="login-username" placeholder="Nom d'utilisateur" class="w-full border p-2 rounded" />
+      <input type="password" id="login-password" placeholder="Mot de passe" class="w-full border p-2 rounded" />
+      <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded">Connexion</button>
+      <p class="text-center text-sm">
+        Pas de compte ? <a href="#" id="show-register" class="text-blue-600 hover:underline">Inscription</a>
+      </p>
+    </form>
+
+    <!-- Inscription -->
+    <form id="register-form" class="space-y-4 hidden">
+      <input type="text" id="register-fullname" placeholder="Nom complet" class="w-full border p-2 rounded" />
+      <input type="text" id="register-username" placeholder="Nom d'utilisateur" class="w-full border p-2 rounded" />
+      <input type="password" id="register-password" placeholder="Mot de passe" class="w-full border p-2 rounded" />
+      <input type="password" id="register-confirm-password" placeholder="Confirmer le mot de passe"
+        class="w-full border p-2 rounded" />
+      <button type="submit" class="bg-green-600 text-white w-full p-2 rounded">S'inscrire</button>
+      <p class="text-center text-sm">
+        Déjà un compte ? <a href="#" id="show-login" class="text-blue-600 hover:underline">Connexion</a>
+      </p>
+    </form>
+  </div>
+</div>
+ <!-- ===== HEADER FIXE ===== -->
+ <header
+  class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-8 bg-gradient-to-r from-blue-700 via-blue-800 to-gray-900 shadow">
+  <!-- Logo + Titre -->
+  <div class="flex items-center gap-2">
+   <strong class="text-xl text-white">Météo CI</strong>
+   <i class="fa-solid fa-cloud-sun text-2xl text-yellow-400"></i>
+  </div>
+<!-- Barre de recherche -->
+<div class="relative w-72 hidden md:block">
+ <input type="text" id="search-input"
+  class="border-2 border-white rounded-lg w-full px-4 pr-10 text-gray-800 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 w-50"
+  placeholder="Rechercher...">
+ <i
+  class="fa-solid fa-magnifying-glass text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+  onclick="searchWeather()"></i>
+</div>
+
+  <!-- Icônes actions -->
+  <div class="flex items-center gap-4 mr-20  justify-between">
+   <a href="#"><i class="fa-regular fa-moon text-2xl text-slate-300 hover:text-yellow-200 " id="lune"></i></a>
+   <a href="#"><i class="fa-regular fa-user text-2xl text-gray-400 hover:text-blue-500"id="user"></i></a>
+  </div>
+ </header>
+ <section class="relative h-64 overflow-hidden">
+  <video class="absolute top-0 left-0 w-full h-full object-cover" autoplay muted loop playsinline
+   poster="https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=1200&h=600&fit=crop">
+   <source src="video/v1.mp4" type="video/mp4" />
+   <source src="video/v1.webm" type="video/webm" />
+   Votre navigateur ne supporte pas la vidéo HTML5.
+  </video>
+  <div class="absolute inset-0 bg-black/50"></div>
+  <div class="relative z-10 flex flex-col items-center justify-center h-full text-center">
+   <h1 class="text-4xl font-bold mb-2 text-white">Météo</h1>
+   <p class="text-lg text-white">Côte d'Ivoire</p>
+   <i class="fa-regular fa-star text-xl mt-2 text-yellow-400"></i>
+  </div>
+ </section>
+
+ <section class="flex flex-wrap justify-center gap-6 px-6 py-10 bg-gray-100"id="cities-container">
+
+  <!-- 1. Abidjan -->
+  <div id="abidjan"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Abidjan</h2>
+   <input type="date" id="date-abidjan"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-abidjan"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-yellow-300 rounded-full mb-2">
+    <i id="icon-abidjan" class="fa-solid fa-sun text-yellow-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-abidjan" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-abidjan" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-abidjan" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 2. Bouaké -->
+  <div id="bouake"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Bouaké</h2>
+   <input type="date" id="date-bouake"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-bouake"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-blue-300 rounded-full mb-2">
+    <i id="icon-bouake" class="fa-solid fa-cloud-sun text-blue-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-bouake" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-bouake" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-bouake" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 3. Korhogo -->
+  <div id="korhogo"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Korhogo</h2>
+   <input type="date" id="date-korhogo"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-korhogo"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-gray-400 rounded-full mb-2">
+    <i id="icon-korhogo" class="fa-solid fa-cloud text-gray-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-korhogo" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-korhogo" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-korhogo" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 4. Yamoussoukro -->
+  <div id="yakro"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Yamoussoukro</h2>
+   <input type="date" id="date-yakro"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-yakro"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-blue-500 rounded-full mb-2">
+    <i id="icon-yakro" class="fa-solid fa-cloud-showers-heavy text-blue-600 text-2xl"></i>
+   </div>
+   <p id="temp-max-yakro" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-yakro" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-yakro" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 5. Man -->
+  <div id="man"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Man</h2>
+   <input type="date" id="date-man"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-man"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-yellow-300 rounded-full mb-2">
+    <i id="icon-man" class="fa-solid fa-sun text-yellow-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-man" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-man" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-man" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 6. Daloa -->
+  <div id="daloa"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Daloa</h2>
+   <input type="date" id="date-daloa"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-daloa"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-gray-400 rounded-full mb-2">
+    <i id="icon-daloa" class="fa-solid fa-cloud text-gray-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-daloa" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-daloa" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-daloa" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 7. San-Pédro -->
+  <div id="sanpedro"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">San-Pédro</h2>
+   <input type="date" id="date-sanpedro"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-sanpedro"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-blue-400 rounded-full mb-2">
+    <i id="icon-sanpedro" class="fa-solid fa-cloud-sun text-blue-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-sanpedro" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-sanpedro" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-sanpedro" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 8. Ferkessédougou -->
+  <div id="ferkessedougou"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Ferkessédougou</h2>
+   <input type="date" id="date-ferkessedougou"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-ferkessedougou"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-red-400 rounded-full mb-2">
+    <i id="icon-ferkessedougou" class="fa-solid fa-sun text-red-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-ferkessedougou" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-ferkessedougou" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-ferkessedougou" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 9. Gagnoa -->
+  <div id="gagnoa"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Gagnoa</h2>
+   <input type="date" id="date-gagnoa"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-gagnoa"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-green-400 rounded-full mb-2">
+    <i id="icon-gagnoa" class="fa-solid fa-cloud-rain text-green-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-gagnoa" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-gagnoa" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-gagnoa" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 10. Odienné -->
+  <div id="odienne"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Odienné</h2>
+   <input type="date" id="date-odienne"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-odienne"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-orange-400 rounded-full mb-2">
+    <i id="icon-odienne" class="fa-solid fa-sun text-orange-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-odienne" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-odienne" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-odienne" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 11. Bondoukou -->
+  <div id="bondoukou"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Bondoukou</h2>
+   <input type="date" id="date-bondoukou"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-bondoukou"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-purple-400 rounded-full mb-2">
+    <i id="icon-bondoukou" class="fa-solid fa-cloud-sun text-purple-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-bondoukou" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-bondoukou" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-bondoukou" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 12. Divo -->
+  <div id="divo"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Divo</h2>
+   <input type="date" id="date-divo"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-divo"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-teal-400 rounded-full mb-2">
+    <i id="icon-divo" class="fa-solid fa-cloud-rain text-teal-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-divo" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-divo" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-divo" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 13. Soubré -->
+  <div id="soubre"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Soubré</h2>
+   <input type="date" id="date-soubre"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-soubre"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-indigo-400 rounded-full mb-2">
+    <i id="icon-soubre" class="fa-solid fa-cloud text-indigo-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-soubre" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-soubre" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-soubre" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 14. Adzopé -->
+  <div id="adzope"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Adzopé</h2>
+   <input type="date" id="date-adzope"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-adzope"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-pink-400 rounded-full mb-2">
+    <i id="icon-adzope" class="fa-solid fa-cloud-showers-heavy text-pink-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-adzope" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-adzope" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-adzope" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+
+  <!-- 15. Abengourou -->
+  <div id="abengourou"
+   class="bg-white rounded-2xl shadow-lg p-4 text-center border border-gray-200 w-44 transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400">
+   <h2 class="text-lg font-semibold mb-2">Abengourou</h2>
+   <input type="date" id="date-abengourou"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <input type="time" id="time-abengourou"
+    class="w-full mb-2 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+   <div class="w-16 h-16 mx-auto flex items-center justify-center border-4 border-cyan-400 rounded-full mb-2">
+    <i id="icon-abengourou" class="fa-solid fa-cloud-sun text-cyan-400 text-2xl"></i>
+   </div>
+   <p id="temp-max-abengourou" class="text-red-500 font-bold">--°</p>
+   <p id="temp-min-abengourou" class="text-blue-500 font-semibold">--°</p>
+   <p id="condition-abengourou" class="text-gray-600 text-xs mt-1">--</p>
+  </div>
+ </section>
+  
+<!-- Le footter  -->
+<footer class="w-full -mb-20  - flex-auto bg-gradient-to-r from-blue-700 via-blue-800 to-gray-900 text-white un"> <div class="max-w-7xl mx-auto px-6 py-12">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-10 footer-grid">
+   <!-- Logo + description -->
+   <div class="text-center md:text-left">
+    <div class="flex items-center justify-center md:justify-start gap-3 mb-4">
+     <i class="fa-solid fa-cloud-sun text-yellow-400 text-3xl"></i>
+     <span class="text-2xl font-bold ml-5">Météo CI</span>
+    </div>
+    <p class="text-gray-300 leading-relaxed ml-5">
+     Consultez les prévisions météorologiques des principales villes de
+     Côte d'Ivoire en temps réel. Données fiables et mises à jour régulièrement.
+    </p>
+   </div>
+
+   <!-- Liens utiles -->
+   <div class="text-center md:text-left">
+    <h3 class="text-xl font-semibold mb-4 text-yellow-400">Liens utiles</h3>
+    <nav>
+     <ul class="space-y-3">
+      <li>
+       <a href="#" class="text-gray-300 hover:text-yellow-400 hover-transition inline-flex items-center gap-2">
+        <i class="fa-solid fa-home text-sm"></i>
+        Accueil
+       </a>
+      </li>
+      <li>
+       <a href="#" class="text-gray-300 hover:text-yellow-400 hover-transition inline-flex items-center gap-2">
+        <i class="fa-solid fa-info-circle text-sm"></i>
+        À propos
+       </a>
+      </li>
+      <li>
+       <a href="#" class="text-gray-300 hover:text-yellow-400 hover-transition inline-flex items-center gap-2">
+        <i class="fa-solid fa-envelope text-sm"></i>
+        Contact
+       </a>
+      </li>
+      <li>
+       <a href="#" class="text-gray-300 hover:text-yellow-400 hover-transition inline-flex items-center gap-2">
+        <i class="fa-solid fa-gavel text-sm"></i>
+        Mentions légales
+       </a>
+      </li>
+      <li>
+       <a href="#" class="text-gray-300 hover:text-yellow-400 hover-transition inline-flex items-center gap-2">
+        <i class="fa-solid fa-shield-alt text-sm"></i>
+        Politique de confidentialité
+       </a>
+      </li>
+     </ul>
+    </nav>
+   </div>
+
+   <!-- Réseaux sociaux -->
+   <div class="text-center md:text-left">
+    <h3 class="text-xl font-semibold mb-4 text-yellow-400">Suivez-nous</h3>
+    <div class="flex gap-4 justify-center md:justify-start social-icons">
+     <a href="#" class="social-icon text-gray-300 hover:text-blue-500 text-2xl" aria-label="Facebook">
+      <i class="fa-brands fa-facebook-f"></i>
+     </a>
+     <a href="#" class="social-icon text-gray-300 hover:text-blue-400 text-2xl" aria-label="Twitter">
+      <i class="fa-brands fa-twitter"></i>
+     </a>
+     <a href="#" class="social-icon text-gray-300 hover:text-pink-400 text-2xl" aria-label="Instagram">
+      <i class="fa-brands fa-instagram"></i>
+     </a>
+     <a href="#" class="social-icon text-gray-300 hover:text-red-500 text-2xl" aria-label="YouTube">
+      <i class="fa-brands fa-youtube"></i>
+     </a>
+     <a href="#" class="social-icon text-gray-300 hover:text-green-500 text-2xl" aria-label="WhatsApp">
+      <i class="fa-brands fa-whatsapp"></i>
+     </a>
+    </div>
+
+    <!-- Newsletter signup -->
+    <div class="mt-6">
+     <h4 class="text-sm font-semibold mb-2 text-gray-300">Newsletter</h4>
+     <div class="flex gap-2 max-w-xs mx-auto md:mx-0">
+      <input type="email" placeholder="Votre email"
+       class="flex-1 px-3 py-2 text-sm bg-white/10 border border-white/20 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+      <button
+       class="px-4 py-2 bg-yellow-400 text-blue-900 rounded-md hover:bg-yellow-300 transition-colors duration-200 text-sm font-semibold">
+       OK
+      </button>
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <!-- Separator -->
+  <div class="border-t border-white/20 mt-8 pt-6">
+   <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+    <p class="text-sm text-gray-400 ml-5">
+     © 2025 Météo CI — Tous droits réservés.
+    </p>
+    <div class="flex items-center gap-4 text-sm text-gray-400">
+     <span>Développé par FOF</span>
+     <span>•</span>
+     <span>Version 2.0</span>
+    </div>
+   </div>
+  </div>
+ </div>
+</footer>
+
+<!-- JS SCRIPT  -->
+<script src="js.js"></script>
+</body>
+</html>
