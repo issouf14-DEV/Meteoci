@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Météo CI - Consultez les prévisions météorologiques des principales villes de Côte d'Ivoire en temps réel." />
+  <meta name="keywords" content="météo, Côte d'Ivoire, Abidjan, prévisions, temps, weather" />
+  <meta name="author" content="FOFANA ISSOUF" />
+  <meta name="theme-color" content="#1e40af" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://code.jquery.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://images.unsplash.com; connect-src 'self' https://api.openweathermap.org; media-src 'self' https://images.unsplash.com; font-src 'self' https://cdnjs.cloudflare.com;" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Météo CI - La météo en Côte d'Ivoire" />
+  <meta property="og:description" content="Consultez les prévisions météo des villes ivoiriennes en temps réel." />
+  <meta property="og:type" content="website" />
+
+  <title>Météo CI - Prévisions météo en Côte d'Ivoire</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/main.css" />
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+
+<body class="bg-primary min-h-screen">
+
+  <!-- Loading Screen -->
+  <div id="app-loader" class="loader">
+    <div class="loader__spinner"></div>
+    <p class="loader__text">Chargement de Météo CI...</p>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header__logo">
+      <strong class="header__logo-text">Météo CI</strong>
+      <i class="header__logo-icon fa-solid fa-cloud-sun"></i>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search">
+      <input type="text" id="search-input" class="search__input" placeholder="Rechercher une ville..."
+        aria-label="Rechercher une ville" />
+      <i class="search__icon fa-solid fa-magnifying-glass" aria-label="Rechercher"></i>
+    </div>
+
+    <!-- Actions -->
+    <div class="header__actions">
+      <button class="header__action-btn header__action-btn--theme" aria-label="Changer le thème">
+        <i class="fa-regular fa-moon" id="lune"></i>
+      </button>
+      <button class="header__action-btn" id="user" aria-label="Mon compte">
+        <i class="fa-regular fa-user"></i>
+      </button>
+    </div>
+  </header>
+
+
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal-backdrop active">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title">
+          <i class="fa-solid fa-user-lock mr-2"></i>Authentification
+        </h2>
+        <button id="close-auth-modal" class="modal__close hidden" aria-label="Fermer">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal__body">
+        <!-- Login Form -->
+        <form id="login-form" class="space-y-4">
+          <div class="form-group">
+            <input type="text" id="login-username" class="form-input" placeholder="Nom d'utilisateur" required />
+          </div>
+          <div class="form-group">
+            <input type="password" id="login-password" class="form-input" placeholder="Mot de passe" required />
+          </div>
+          <button type="submit" class="btn btn--primary btn--full">
+            <i class="fa-solid fa-sign-in-alt"></i> Connexion
+          </button>
+          <p class="text-center text-sm text-secondary">
+            Pas de compte ?
+            <a href="#" id="show-register" class="link">Inscription</a>
+          </p>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="space-y-4 hidden">
+          <div class="form-group">
+            <input type="text" id="register-fullname" class="form-input" placeholder="Nom complet" required />
+          </div>
+          <div class="form-group">
+            <input type="text" id="register-username" class="form-input" placeholder="Nom d'utilisateur" required />
+          </div>
+          <div class="form-group">
+            <input type="password" id="register-password" class="form-input" placeholder="Mot de passe" required />
+          </div>
+          <div class="form-group">
+            <input type="password" id="register-confirm-password" class="form-input"
+              placeholder="Confirmer le mot de passe" required />
+          </div>
+          <button type="submit" class="btn btn--secondary btn--full">
+            <i class="fa-solid fa-user-plus"></i> S'inscrire
+          </button>
+          <p class="text-center text-sm text-secondary">
+            Déjà un compte ?
+            <a href="#" id="show-login" class="link">Connexion</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <video class="hero__video" autoplay muted loop playsinline
+      poster="https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=1200&h=600&fit=crop">
+      <source src="video/v1.mp4" type="video/mp4" />
+      <source src="video/v1.webm" type="video/webm" />
+      Votre navigateur ne supporte pas la vidéo HTML5.
+    </video>
+    <div class="hero__overlay"></div>
+    <div class="hero__content">
+      <h1 id="dynamic-title" class="hero__title animate-fade-in-down mb-4 text-3xl md:text-5xl font-bold">Météo CI</h1>
+      <p class="hero__subtitle animate-fade-in-up text-xl opacity-90">Côte d'Ivoire</p>
+      <i class="hero__icon fa-regular fa-star mt-4"></i>
+    </div>
+  </section>
+
+  <!-- Cities Grid -->
+  <section id="cities-container" class="cities-grid">
+    <!-- City cards will be generated dynamically by JavaScript -->
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <!-- Logo & Description -->
+      <div class="text-center md:text-left">
+        <div class="flex items-center justify-center md:justify-start gap-3 mb-4">
+          <i class="fa-solid fa-cloud-sun text-3xl text-accent"></i>
+          <span class="text-2xl font-bold">Météo CI</span>
+        </div>
+        <p class="footer__description">
+          Consultez les prévisions météorologiques des principales villes de
+          Côte d'Ivoire en temps réel. Données fiables et mises à jour régulièrement.
+        </p>
+      </div>
+
+      <!-- Useful Links -->
+      <div class="text-center md:text-left">
+        <h3 class="footer__section-title">Liens utiles</h3>
+        <nav>
+          <ul class="footer__nav">
+            <li class="footer__nav-item">
+              <a href="#" class="footer__nav-link">
+                <i class="fa-solid fa-home"></i> Accueil
+              </a>
+            </li>
+            <li class="footer__nav-item">
+              <a href="#" class="footer__nav-link">
+                <i class="fa-solid fa-info-circle"></i> À propos
+              </a>
+            </li>
+            <li class="footer__nav-item">
+              <a href="#" class="footer__nav-link">
+                <i class="fa-solid fa-envelope"></i> Contact
+              </a>
+            </li>
+            <li class="footer__nav-item">
+              <a href="#" class="footer__nav-link">
+                <i class="fa-solid fa-gavel"></i> Mentions légales
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <!-- Social & Newsletter -->
+      <div class="text-center md:text-left">
+        <h3 class="footer__section-title">Suivez-nous</h3>
+        <div class="footer__social">
+          <a href="#" class="footer__social-link" aria-label="Facebook">
+            <i class="fa-brands fa-facebook-f"></i>
+          </a>
+          <a href="#" class="footer__social-link" aria-label="Twitter">
+            <i class="fa-brands fa-twitter"></i>
+          </a>
+          <a href="#" class="footer__social-link" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+          <a href="#" class="footer__social-link" aria-label="YouTube">
+            <i class="fa-brands fa-youtube"></i>
+          </a>
+          <a href="#" class="footer__social-link" aria-label="WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+        </div>
+
+        <div class="mt-lg">
+          <h4 class="text-sm font-semibold mb-2 opacity-80">Newsletter</h4>
+          <div class="footer__newsletter">
+            <input type="email" class="footer__newsletter-input" placeholder="Votre email" />
+            <button class="footer__newsletter-btn">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="footer__bottom">
+      <p class="footer__copyright">
+        © 2025 Météo CI — Tous droits réservés.
+      </p>
+      <div class="footer__credits">
+        <span>Développé par FOF</span>
+        <span>•</span>
+        <span>Version 2.0</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JavaScript Modules -->
+  <script src="js/config.js"></script>
+  <script src="js/ui/notifications.js"></script>
+  <script src="js/ui/theme.js"></script>
+  <script src="js/ui/animations.js"></script>
+  <script src="js/api/weather.js"></script>
+  <script src="js/auth/auth.js"></script>
+  <script src="js/components/cityCard.js"></script>
+  <script src="js/components/search.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
