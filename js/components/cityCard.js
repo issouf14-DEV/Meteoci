@@ -13,11 +13,11 @@ const CityCardComponent = {
         return `
       <div id="${cityId}" class="city-card animate-fade-in-up">
         <h2 class="city-card__name">${cityName}</h2>
-        <input type="date" id="date-${cityId}" 
-          class="city-card__input" 
+        <input type="date" id="date-${cityId}"
+          class="city-card__input"
           aria-label="Sélectionner la date pour ${cityName}">
-        <input type="time" id="time-${cityId}" 
-          class="city-card__input" 
+        <input type="time" id="time-${cityId}"
+          class="city-card__input"
           aria-label="Sélectionner l'heure pour ${cityName}">
         <div class="city-card__icon-wrapper border-yellow-300">
           <i id="icon-${cityId}" class="city-card__icon fa-solid fa-spinner animate-spin text-yellow-400"></i>
