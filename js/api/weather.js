@@ -194,6 +194,17 @@ const WeatherService = {
     },
 
     /**
+     * Get animation class based on weather condition
+     */
+    getWeatherAnimation(weatherMain) {
+        const key = weatherMain.toLowerCase();
+        if (key === "clear") return "weather-icon-sun";
+        if (key === "rain" || key === "drizzle") return "weather-icon-rain";
+        if (key === "clouds" || key === "mist" || key === "fog" || key === "haze") return "weather-icon-cloud";
+        return "animate-float";
+    },
+
+    /**
      * Update the display for a city card
      */
     updateDisplay(cityId, weatherData) {
@@ -205,6 +216,7 @@ const WeatherService = {
         const weatherMain = weatherData.weather[0].main;
 
         const config = this.getWeatherConfig(weatherMain);
+        const animClass = this.getWeatherAnimation(weatherMain);
 
         // Update elements
         const tempMaxEl = document.getElementById(`temp-max-${cityId}`);
@@ -227,22 +239,12 @@ const WeatherService = {
         }
 
         if (iconEl) {
-            iconEl.className = "";
-            // Add new classes
-            let animationClass = "animate-float"; // Default
-
-            if (tempMax < 15) {
-                animationClass = "animate-shiver";
-            } else if (tempMax > 28) {
-                animationClass = "animate-pulse-heat";
-            }
-
-            iconEl.className = `city-card__icon fa-solid ${config.icon} ${config.color} ${animationClass}`;
+            // Icon + color from weather condition + matching animation
+            iconEl.className = `city-card__icon fa-solid ${config.icon} ${config.color} ${animClass}`;
         }
 
-        // Update icon wrapper border color
+        // Update icon wrapper border color to match weather condition
         if (iconWrapper) {
-            // Remove existing border colors
             const classes = iconWrapper.className.split(" ");
             const newClasses = classes.filter(c => !c.startsWith("border-"));
             newClasses.push(config.border);

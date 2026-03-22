@@ -73,11 +73,15 @@
 
   <!-- Auth Modal -->
   <div id="auth-modal" class="modal-backdrop active">
-    <div class="modal">
-      <div class="modal__header">
-        <h2 class="modal__title">
-          <i class="fa-solid fa-user-lock mr-2"></i>Authentification
-        </h2>
+    <div class="modal auth-modal">
+      <div class="modal__header auth-modal__header">
+        <div class="auth-modal__brand">
+          <div class="auth-modal__logo">
+            <i class="fa-solid fa-cloud-sun"></i>
+          </div>
+          <h2 class="modal__title">Météo CI</h2>
+          <p class="auth-modal__subtitle">Connectez-vous pour accéder aux prévisions</p>
+        </div>
         <button id="close-auth-modal" class="modal__close hidden" aria-label="Fermer">
           <i class="fa-solid fa-times"></i>
         </button>
@@ -85,45 +89,104 @@
 
       <div class="modal__body">
         <!-- Login Form -->
-        <form id="login-form" class="space-y-4">
+        <form id="login-form" class="auth-form" autocomplete="off">
           <div class="form-group">
-            <input type="text" id="login-username" class="form-input" placeholder="Nom d'utilisateur" required />
+            <label for="login-username" class="form-label">
+              <i class="fa-solid fa-user"></i> Nom d'utilisateur
+            </label>
+            <div class="form-input-wrapper">
+              <input type="text" id="login-username" class="form-input" placeholder="Entrez votre identifiant"
+                autocomplete="username" required />
+            </div>
           </div>
           <div class="form-group">
-            <input type="password" id="login-password" class="form-input" placeholder="Mot de passe" required />
+            <label for="login-password" class="form-label">
+              <i class="fa-solid fa-lock"></i> Mot de passe
+            </label>
+            <div class="form-input-wrapper form-input-wrapper--password">
+              <input type="password" id="login-password" class="form-input" placeholder="Entrez votre mot de passe"
+                autocomplete="current-password" required />
+              <button type="button" class="toggle-password" aria-label="Afficher le mot de passe">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
-          <button type="submit" class="btn btn--primary btn--full">
-            <i class="fa-solid fa-sign-in-alt"></i> Connexion
+          <button type="submit" class="btn btn--primary btn--full btn--lg">
+            <i class="fa-solid fa-sign-in-alt"></i> Se connecter
           </button>
+          <div class="auth-form__divider">
+            <span>ou</span>
+          </div>
           <p class="text-center text-sm text-secondary">
-            Pas de compte ?
-            <a href="#" id="show-register" class="link">Inscription</a>
+            Pas encore de compte ?
+            <a href="#" id="show-register" class="link link--strong">Créer un compte</a>
           </p>
         </form>
 
         <!-- Register Form -->
-        <form id="register-form" class="space-y-4 hidden">
+        <form id="register-form" class="auth-form hidden" autocomplete="off">
           <div class="form-group">
-            <input type="text" id="register-fullname" class="form-input" placeholder="Nom complet" required />
+            <label for="register-fullname" class="form-label">
+              <i class="fa-solid fa-id-card"></i> Nom complet
+            </label>
+            <div class="form-input-wrapper">
+              <input type="text" id="register-fullname" class="form-input" placeholder="Ex: Kouassi Jean"
+                autocomplete="name" required />
+            </div>
           </div>
           <div class="form-group">
-            <input type="text" id="register-username" class="form-input" placeholder="Nom d'utilisateur" required />
+            <label for="register-username" class="form-label">
+              <i class="fa-solid fa-at"></i> Nom d'utilisateur
+            </label>
+            <div class="form-input-wrapper">
+              <input type="text" id="register-username" class="form-input" placeholder="Lettres, chiffres et _"
+                autocomplete="username" pattern="[a-zA-Z0-9_]+" required />
+            </div>
+            <span class="form-hint">Min. 3 caractères (lettres, chiffres, _)</span>
           </div>
           <div class="form-group">
-            <input type="password" id="register-password" class="form-input" placeholder="Mot de passe" required />
+            <label for="register-password" class="form-label">
+              <i class="fa-solid fa-shield-halved"></i> Mot de passe
+            </label>
+            <div class="form-input-wrapper form-input-wrapper--password">
+              <input type="password" id="register-password" class="form-input"
+                placeholder="Min. 6 chars, Maj + min + chiffre" autocomplete="new-password" required />
+              <button type="button" class="toggle-password" aria-label="Afficher le mot de passe">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+            <!-- Password strength bar -->
+            <div class="password-strength">
+              <div class="password-strength__track">
+                <div id="password-strength-bar" class="password-strength__bar"></div>
+              </div>
+              <span id="password-strength-text" class="password-strength__text"></span>
+            </div>
           </div>
           <div class="form-group">
-            <input type="password" id="register-confirm-password" class="form-input"
-              placeholder="Confirmer le mot de passe" required />
+            <label for="register-confirm-password" class="form-label">
+              <i class="fa-solid fa-check-double"></i> Confirmer le mot de passe
+            </label>
+            <div class="form-input-wrapper form-input-wrapper--password">
+              <input type="password" id="register-confirm-password" class="form-input"
+                placeholder="Retapez le mot de passe" autocomplete="new-password" required />
+              <button type="button" class="toggle-password" aria-label="Afficher le mot de passe">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
-          <button type="submit" class="btn btn--secondary btn--full">
-            <i class="fa-solid fa-user-plus"></i> S'inscrire
+          <button type="submit" class="btn btn--secondary btn--full btn--lg">
+            <i class="fa-solid fa-user-plus"></i> Créer mon compte
           </button>
+          <div class="auth-form__divider">
+            <span>ou</span>
+          </div>
           <p class="text-center text-sm text-secondary">
-            Déjà un compte ?
-            <a href="#" id="show-login" class="link">Connexion</a>
+            Déjà inscrit ?
+            <a href="#" id="show-login" class="link link--strong">Se connecter</a>
           </p>
         </form>
+
       </div>
     </div>
   </div>
@@ -216,10 +279,13 @@
 
         <div class="mt-lg">
           <h4 class="text-sm font-semibold mb-2 opacity-80">Newsletter</h4>
-          <div class="footer__newsletter">
-            <input type="email" class="footer__newsletter-input" placeholder="Votre email" />
-            <button class="footer__newsletter-btn">OK</button>
-          </div>
+          <form id="newsletter-form" class="footer__newsletter" novalidate>
+            <input type="email" id="newsletter-email" class="footer__newsletter-input"
+              placeholder="Votre email" required autocomplete="email"
+              maxlength="254" aria-label="Adresse email pour la newsletter" />
+            <button type="submit" id="newsletter-btn" class="footer__newsletter-btn">OK</button>
+          </form>
+          <p id="newsletter-msg" class="footer__newsletter-msg"></p>
         </div>
       </div>
     </div>
@@ -245,6 +311,7 @@
   <script src="js/api/weather.js"></script>
   <script src="js/auth/auth.js"></script>
   <script src="js/components/cityCard.js"></script>
+  <script src="js/components/newsletter.js"></script>
   <script src="js/components/search.js"></script>
   <script src="js/main.js"></script>
 </body>

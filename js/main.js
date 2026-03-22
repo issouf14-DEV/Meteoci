@@ -43,6 +43,9 @@ const App = {
         // Initialize search component
         SearchComponent.init();
 
+        // Initialize newsletter
+        NewsletterComponent.init();
+
         // Create city cards and load weather data
         CityCardComponent.createAllCards();
 
