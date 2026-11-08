@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 /**
  * Schémas Zod des réponses OpenWeatherMap (API 2.5).
@@ -29,18 +29,18 @@ export const owmCurrentResponseSchema = z.object({
   id: z.number(),
   name: z.string(),
   dt: z.number(),
-  weather: z.array(owmConditionSchema).min(1),
+  weather: z.array(owmConditionSchema).check(z.minLength(1)),
   main: owmMainSchema,
-  wind: owmWindSchema.optional(),
-  sys: z.object({ country: z.string().optional() }).optional(),
+  wind: z.optional(owmWindSchema),
+  sys: z.optional(z.object({ country: z.optional(z.string()) })),
 });
 
 export const owmForecastItemSchema = z.object({
   dt: z.number(),
   main: owmMainSchema,
-  weather: z.array(owmConditionSchema).min(1),
-  wind: owmWindSchema.optional(),
-  pop: z.number().optional(),
+  weather: z.array(owmConditionSchema).check(z.minLength(1)),
+  wind: z.optional(owmWindSchema),
+  pop: z.optional(z.number()),
 });
 
 export const owmForecastResponseSchema = z.object({
@@ -64,26 +64,29 @@ export const CITY_NAME_MAX_LENGTH = 60;
 /** Lettres (y compris accentuées), espaces, tirets et apostrophes uniquement. */
 const CITY_NAME_PATTERN = /^[\p{L}\p{M}](?:[\p{L}\p{M}\s'’-]*[\p{L}\p{M}])?$/u;
 
-export const cityNameSchema = z
-  .string()
-  .transform((raw) => raw.normalize("NFC").trim().replace(/\s+/g, " "))
-  .pipe(
-    z
-      .string()
-      .min(1, "Veuillez saisir le nom d'une ville.")
-      .min(
+export const cityNameSchema = z.pipe(
+  z.pipe(
+    z.string(),
+    z.transform((raw: string) => raw.normalize("NFC").trim().replace(/\s+/g, " ")),
+  ),
+  z
+    .string()
+    .check(
+      z.minLength(1, "Veuillez saisir le nom d'une ville."),
+      z.minLength(
         CITY_NAME_MIN_LENGTH,
         `Le nom de la ville doit contenir au moins ${CITY_NAME_MIN_LENGTH} caractères.`,
-      )
-      .max(
+      ),
+      z.maxLength(
         CITY_NAME_MAX_LENGTH,
         `Le nom de la ville ne doit pas dépasser ${CITY_NAME_MAX_LENGTH} caractères.`,
-      )
-      .regex(
+      ),
+      z.regex(
         CITY_NAME_PATTERN,
         "Seuls les lettres (accents compris), espaces, tirets et apostrophes sont autorisés.",
       ),
-  );
+    ),
+);
 
 /* -------------------------------------------------------------------------- */
 /*                                   Thème                                    */

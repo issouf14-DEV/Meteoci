@@ -1,8 +1,6 @@
 import { Globe, Loader2, MapPin, Search, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { type City, normalizeName } from "@/lib/cities";
 import { cn } from "@/lib/utils";
 import { CITY_NAME_MAX_LENGTH } from "@/lib/validation";
@@ -21,7 +19,7 @@ interface SearchBarProps {
 
 const MAX_SUGGESTIONS = 7;
 
-/** macOS / iOS : afficher « ⌘ K » au lieu de « Ctrl K ». */
+/** macOS / iOS : raccourci annoncé « Meta+K » (sinon « Control+K »). */
 const IS_APPLE = (() => {
   if (typeof navigator === "undefined") return false;
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
@@ -172,7 +170,7 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
     : "";
 
   return (
-    <search className={cn("relative block w-full", className)}>
+    <search className={cn("search block", className)}>
       <form
         aria-label="Rechercher une ville"
         className="relative w-full"
@@ -184,11 +182,7 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
         <label htmlFor={`${listboxId}-input`} className="sr-only">
           Rechercher une ville
         </label>
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
+        <input
           ref={inputRef}
           id={`${listboxId}-input`}
           type="text"
@@ -217,15 +211,14 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
           onFocus={() => setOpen(true)}
           onBlur={close}
           onKeyDown={onKeyDown}
-          className="h-11 rounded-full border-border/80 bg-card/70 pl-10 pr-24 shadow-xs"
+          className="search__input"
         />
 
-        <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-2">
-          {value && !busy ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="rounded-full text-muted-foreground"
+        <div className="search__buttons">
+          {value && !busy && (
+            <button
+              type="button"
+              className="search__btn"
               aria-label="Effacer la recherche"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
@@ -235,25 +228,21 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
               }}
             >
               <X aria-hidden="true" />
-            </Button>
-          ) : (
-            <kbd className="pointer-events-none mr-1 hidden select-none items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground md:inline-flex">
-              {IS_APPLE ? "⌘ K" : "Ctrl K"}
-            </kbd>
+            </button>
           )}
-          <Button
+          <button
             type="submit"
-            size="icon-sm"
-            className="rounded-full"
+            className="search__btn"
             aria-label="Lancer la recherche"
+            title="Rechercher"
             disabled={busy}
           >
             {busy ? (
-              <Loader2 aria-hidden="true" className="animate-spin" />
+              <Loader2 aria-hidden="true" className="weather-icon-spin" />
             ) : (
               <Search aria-hidden="true" />
             )}
-          </Button>
+          </button>
         </div>
 
         {expanded && (
@@ -261,7 +250,7 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
             id={listboxId}
             role="listbox"
             aria-label="Suggestions de villes"
-            className="absolute inset-x-0 top-full z-50 mt-2 max-h-80 overflow-y-auto overscroll-contain rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 animation-duration-150"
+            className="search__list"
           >
             {options.map((option, index) => {
               const active = index === activeIndex;
@@ -276,22 +265,20 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
                   onMouseDown={(event) => event.preventDefault()}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => choose(option)}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150",
-                    active ? "bg-muted" : "hover:bg-muted/60",
-                  )}
+                  className="search__option"
                 >
                   {option.kind === "city" ? (
                     <>
-                      <MapPin aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                      <MapPin
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-[var(--mci-primary)]"
+                      />
                       <span className="truncate font-medium">{option.city.name}</span>
-                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                        {option.city.region}
-                      </span>
+                      <span className="search__option-hint">{option.city.region}</span>
                     </>
                   ) : (
                     <>
-                      <Globe aria-hidden="true" className="size-4 shrink-0 text-success" />
+                      <Globe aria-hidden="true" className="size-4 shrink-0 text-emerald-600" />
                       <span className="truncate">
                         Rechercher <span className="font-medium">« {option.label} »</span>
                       </span>

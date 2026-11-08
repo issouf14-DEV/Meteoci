@@ -258,9 +258,9 @@ export default function App() {
       />
 
       <main className="flex-1">
-        <Hero cityCount={CITIES.length} />
-        {!hasApiKey && <ApiKeyBanner />}
+        <Hero />
         <CityGrid
+          notice={hasApiKey ? null : <ApiKeyBanner />}
           cities={allCities}
           filteredCity={filteredCity}
           refreshedAt={refreshedAt}

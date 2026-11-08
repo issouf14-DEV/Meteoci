@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
@@ -8,14 +8,15 @@ const MESSAGES = [
   "Prévisions en temps réel",
 ] as const;
 
-const TYPE_MS = 70;
-const DELETE_MS = 35;
-const HOLD_MS = 2000;
+// Vitesses de la version d'origine (CONFIG.ANIMATION).
+const TYPE_MS = 100;
+const DELETE_MS = 60;
+const HOLD_MS = 1000;
 const NEXT_MS = 300;
 const FADE_INTERVAL_MS = 4000;
 
-/** Titre animé (effet machine à écrire), rendu en texte React. */
-export function RotatingTitle() {
+/** Titre animé (effet machine à écrire + curseur clignotant), rendu en texte React. */
+function RotatingTitleImpl() {
   const reduced = useReducedMotion();
   const [index, setIndex] = useState(0);
   const [length, setLength] = useState(0);
@@ -55,22 +56,15 @@ export function RotatingTitle() {
   }, [reduced, deleting, length, word]);
 
   return (
-    <h1 className="flex min-h-[2.5em] items-center justify-center font-heading text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:min-h-[1.3em] lg:text-6xl lg:leading-none">
+    <h1 className="hero__title">
       <span className="sr-only">Météo CI — la météo de Côte d'Ivoire</span>
-      {reduced ? (
-        <span
-          key={index}
-          aria-hidden="true"
-          className="animate-in fade-in-0 animation-duration-300 ease-out"
-        >
-          {word}
-        </span>
-      ) : (
-        <span aria-hidden="true" className="text-balance">
-          {word.slice(0, length)}
-          <span className="ml-1 inline-block h-[0.9em] w-[3px] translate-y-[0.08em] rounded-full bg-accent align-baseline animate-blink" />
-        </span>
-      )}
+      <span aria-hidden="true">
+        {reduced ? word : word.slice(0, length)}
+        {!reduced && <span className="blinking-cursor">|</span>}
+      </span>
     </h1>
   );
 }
+
+/** Isolé et mémoïsé : chaque lettre ne re-rend que ce titre. */
+export const RotatingTitle = memo(RotatingTitleImpl);

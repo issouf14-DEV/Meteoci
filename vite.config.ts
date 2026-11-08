@@ -54,5 +54,20 @@ export default defineConfig({
   build: {
     target: "es2020",
     sourcemap: false,
+    rolldownOptions: {
+      output: {
+        // React / React DOM dans un chunk séparé : il change rarement et reste
+        // en cache navigateur d'un déploiement à l'autre.
+        codeSplitting: {
+          groups: [
+            {
+              name: "react",
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
   },
 });

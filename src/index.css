@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./styles/legacy.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -60,7 +61,8 @@
 
 @theme inline {
   --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-heading: "Outfit Variable", "Outfit", "Inter Variable", system-ui, sans-serif;
+  /* Titres en Inter, comme le rendu de la version d'origine. */
+  --font-heading: "Inter Variable", "Inter", "Segoe UI", system-ui, sans-serif;
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -256,7 +258,7 @@
   h2,
   h3,
   h4 {
-    @apply font-heading tracking-tight;
+    @apply font-heading;
   }
 
   ::selection {
@@ -268,6 +270,15 @@
       scroll-behavior: smooth;
     }
   }
+
+  /* biome-ignore-start lint/complexity/noImportantStyles: pendant le changement de thème, aucune transition (sinon des centaines d'éléments s'animent : INP élevé). */
+  .theme-switching,
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
+    transition: none !important;
+  }
+  /* biome-ignore-end lint/complexity/noImportantStyles: fin du bloc theme-switching */
 
   /* biome-ignore-start lint/complexity/noImportantStyles: la préférence « réduire les animations » doit l'emporter sur toutes les animations et transitions des utilitaires. */
   @media (prefers-reduced-motion: reduce) {

@@ -1,63 +1,58 @@
-import { CloudSun, ExternalLink } from "lucide-react";
+import { CloudSun, ExternalLink, House, MapPin, Sun } from "lucide-react";
 
-import { Separator } from "@/components/ui/separator";
+import { Github } from "@/lib/brand-icons";
 import { SITE, SOCIAL_LINKS } from "@/lib/site";
 
 const EXTERNAL = { target: "_blank", rel: "noopener noreferrer" } as const;
 
-const linkClass =
-  "inline-flex items-center gap-1.5 rounded-sm py-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background";
-
+/** Pied de page de l'original : logo + description, liens utiles, suivez-nous. */
 export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-8 border-t bg-card/60">
-      <div className="container grid gap-10 py-12 md:grid-cols-[1.5fr_1fr_1fr]">
+    <footer className="footer">
+      <div className="footer__grid">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-xl bg-linear-to-br/srgb from-primary to-secondary text-white">
-              <CloudSun aria-hidden="true" className="size-5" />
-            </span>
-            <span className="font-heading text-xl font-bold">
-              Météo <span className="text-accent">CI</span>
-            </span>
-          </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          <p className="footer__brand">
+            <CloudSun aria-hidden="true" />
+            <span>Météo CI</span>
+          </p>
+          <p className="footer__description">
             Consultez les prévisions météorologiques des principales villes de Côte d'Ivoire en
-            temps réel. Données mises à jour régulièrement.
+            temps réel. Données fiables et mises à jour régulièrement.
           </p>
         </div>
 
         <nav aria-labelledby="footer-liens">
-          <h2
-            id="footer-liens"
-            className="font-heading text-sm font-semibold uppercase tracking-wider"
-          >
+          <h2 id="footer-liens" className="footer__section-title">
             Liens utiles
           </h2>
-          <ul className="mt-3 space-y-0.5">
-            <li>
-              <a href="#accueil" className={linkClass}>
+          <ul className="footer__nav">
+            <li className="footer__nav-item">
+              <a href="#accueil" className="footer__nav-link">
+                <House aria-hidden="true" />
                 Accueil
               </a>
             </li>
-            <li>
-              <a href="#villes" className={linkClass}>
+            <li className="footer__nav-item">
+              <a href="#villes" className="footer__nav-link">
+                <MapPin aria-hidden="true" />
                 Prévisions par ville
               </a>
             </li>
-            <li>
-              <a href="https://openweathermap.org/" className={linkClass} {...EXTERNAL}>
+            <li className="footer__nav-item">
+              <a href="https://openweathermap.org/" className="footer__nav-link" {...EXTERNAL}>
+                <Sun aria-hidden="true" />
                 OpenWeatherMap
-                <ExternalLink aria-hidden="true" className="size-3.5" />
+                <ExternalLink aria-hidden="true" className="opacity-70" />
                 <span className="sr-only">(nouvel onglet)</span>
               </a>
             </li>
-            <li>
-              <a href={SITE.repository} className={linkClass} {...EXTERNAL}>
+            <li className="footer__nav-item">
+              <a href={SITE.repository} className="footer__nav-link" {...EXTERNAL}>
+                <Github aria-hidden="true" />
                 Code source
-                <ExternalLink aria-hidden="true" className="size-3.5" />
+                <ExternalLink aria-hidden="true" className="opacity-70" />
                 <span className="sr-only">(nouvel onglet)</span>
               </a>
             </li>
@@ -65,10 +60,8 @@ export function Footer() {
         </nav>
 
         <div>
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider">
-            Suivez-nous
-          </h2>
-          <ul className="mt-4 flex flex-wrap gap-2">
+          <h2 className="footer__section-title">Suivez-nous</h2>
+          <ul className="footer__social">
             {SOCIAL_LINKS.map(({ label, href, Icon }) => {
               const external = href.startsWith("http");
               return (
@@ -77,10 +70,10 @@ export function Footer() {
                     href={href}
                     aria-label={external ? `${label} (nouvel onglet)` : label}
                     title={label}
-                    className="grid size-11 place-items-center rounded-full border bg-background text-muted-foreground transition-[transform,translate,scale,color] duration-200 ease-out hover:-translate-y-0.5 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background active:scale-95"
+                    className="footer__social-link"
                     {...(external ? EXTERNAL : {})}
                   >
-                    <Icon aria-hidden="true" className="size-4" />
+                    <Icon aria-hidden="true" />
                   </a>
                 </li>
               );
@@ -89,22 +82,20 @@ export function Footer() {
         </div>
       </div>
 
-      <Separator />
-
-      <div className="container flex flex-col items-center justify-between gap-2 py-6 text-center text-xs text-muted-foreground sm:flex-row sm:text-left">
+      <div className="footer__bottom">
         <p>© {year} Météo CI — Tous droits réservés.</p>
-        <p>
-          Développé par <span className="font-medium text-foreground">{SITE.author}</span>
-          <span aria-hidden="true"> · </span>
-          Données{" "}
-          <a
-            href="https://openweathermap.org/"
-            className="rounded-sm underline underline-offset-4 decoration-muted-foreground/40 hover:decoration-current focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-            {...EXTERNAL}
-          >
-            OpenWeatherMap
-            <span className="sr-only"> (nouvel onglet)</span>
-          </a>
+        <p className="footer__credits">
+          <span>Développé par {SITE.author}</span>
+          <span aria-hidden="true" className="footer__dot">
+            •
+          </span>
+          <span>
+            Données{" "}
+            <a href="https://openweathermap.org/" {...EXTERNAL}>
+              OpenWeatherMap
+              <span className="sr-only"> (nouvel onglet)</span>
+            </a>
+          </span>
         </p>
       </div>
     </footer>

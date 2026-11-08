@@ -9,8 +9,6 @@
  * - messages d'erreur en français
  */
 
-import { z } from "zod";
-
 import { API_KEY, hasApiKey } from "@/lib/env";
 import {
   type OwmCondition,
@@ -22,6 +20,7 @@ import {
   owmCurrentResponseSchema,
   owmForecastResponseSchema,
 } from "@/lib/schemas";
+import { z } from "@/lib/zod";
 
 export type { OwmCurrentResponse, OwmForecastItem, OwmForecastResponse };
 
@@ -29,9 +28,9 @@ export type { OwmCurrentResponse, OwmForecastItem, OwmForecastResponse };
  * Schémas enrichis du décalage horaire (`timezone`, en secondes) : nécessaire
  * pour afficher l'heure locale des villes internationales.
  */
-const currentSchema = owmCurrentResponseSchema.extend({ timezone: z.number().optional() });
-const forecastSchema = owmForecastResponseSchema.extend({
-  city: z.object({ timezone: z.number().optional() }).optional(),
+const currentSchema = z.extend(owmCurrentResponseSchema, { timezone: z.optional(z.number()) });
+const forecastSchema = z.extend(owmForecastResponseSchema, {
+  city: z.optional(z.object({ timezone: z.optional(z.number()) })),
 });
 type CurrentResponse = z.infer<typeof currentSchema>;
 type ForecastResponse = z.infer<typeof forecastSchema>;
@@ -335,7 +334,7 @@ function withSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
 }
 
 /** Valide une réponse brute ; lève une erreur typée si elle ne respecte pas le schéma. */
-function parseResponse<S extends z.ZodType>(schema: S, data: unknown): z.infer<S> {
+function parseResponse<S extends z.ZodMiniType>(schema: S, data: unknown): z.infer<S> {
   const result = schema.safeParse(data);
   if (!result.success) {
     throw new WeatherError("BAD_RESPONSE", "Réponse météo invalide");
@@ -343,7 +342,7 @@ function parseResponse<S extends z.ZodType>(schema: S, data: unknown): z.infer<S
   return result.data;
 }
 
-function request<S extends z.ZodType>(
+function request<S extends z.ZodMiniType>(
   endpoint: "weather" | "forecast",
   query: LocationQuery,
   schema: S,

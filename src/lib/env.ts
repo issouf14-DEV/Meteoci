@@ -1,10 +1,9 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 /** Clé OpenWeatherMap : 32 caractères hexadécimaux. */
 const apiKeySchema = z
   .string()
-  .trim()
-  .regex(/^[a-f0-9]{32}$/i, "Clé API OpenWeatherMap invalide");
+  .check(z.trim(), z.regex(/^[a-f0-9]{32}$/i, "Clé API OpenWeatherMap invalide"));
 
 const parsedKey = apiKeySchema.safeParse(import.meta.env.VITE_OWM_API_KEY);
 
