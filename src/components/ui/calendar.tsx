@@ -1,7 +1,7 @@
-import { fr } from "date-fns/locale/fr";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type * as React from "react";
 import { type ChevronProps, DayPicker, getDefaultClassNames } from "react-day-picker";
+import { fr } from "react-day-picker/locale";
 
 import { cn } from "@/lib/utils";
 
@@ -53,7 +53,7 @@ function Calendar({
         week: cn("mt-1 flex w-full", defaults.week),
         day: cn("group/day relative size-9 p-0 text-center pointer-coarse:size-11", defaults.day),
         day_button: cn(
-          "inline-flex size-full items-center justify-center rounded-lg text-sm tabular-nums transition-[background-color,color,transform] duration-150 hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring active:scale-95 disabled:pointer-events-none",
+          "inline-flex size-full items-center justify-center rounded-lg text-sm tabular-nums transition-transform duration-150 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-95 disabled:pointer-events-none",
           defaults.day_button,
         ),
         today: cn(
@@ -79,6 +79,6 @@ function Calendar({
 }
 
 const navButton =
-  "inline-flex size-9 items-center justify-center rounded-lg text-foreground transition-[background-color,opacity] duration-150 hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30 pointer-coarse:size-11";
+  "inline-flex size-9 items-center justify-center rounded-lg text-foreground hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30 aria-disabled:pointer-events-none aria-disabled:opacity-30 pointer-coarse:size-11";
 
 export { Calendar, type CalendarProps };

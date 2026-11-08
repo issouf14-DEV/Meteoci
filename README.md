@@ -26,17 +26,17 @@ Application web de prévisions météo pour les villes de Côte d'Ivoire : condi
 
 ## Stack technique
 
-| Domaine        | Technologies                                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------------------------- |
-| Framework      | [React 19](https://react.dev/), [TypeScript 5.9](https://www.typescriptlang.org/) (mode strict)                |
-| Build          | [Vite 8](https://vite.dev/) (Rolldown)                                                                         |
-| Styles         | [Tailwind CSS 4](https://tailwindcss.com/) (CSS-first, `@tailwindcss/vite`), `tw-animate-css`                  |
-| Composants     | [shadcn/ui](https://ui.shadcn.com/) (Radix UI Popover), [react-day-picker 9](https://daypicker.dev/) + locale `fr` de `date-fns` pour le sélecteur de date et d'heure |
-| Icônes / toasts | [lucide-react](https://lucide.dev/), [Sonner](https://sonner.emilkowal.ski/)                                  |
-| Validation     | [Zod 4](https://zod.dev/) via `zod/mini`, mode `jitless` (compatible avec la CSP)                              |
-| Qualité        | [Biome 2](https://biomejs.dev/) (lint + formatage)                                                             |
-| Polices        | Auto-hébergée : `@fontsource-variable/inter`                                                                   |
-| Données        | [OpenWeatherMap](https://openweathermap.org/api)                                                               |
+| Domaine         | Technologies                                                                                                                                                          |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework       | [React 19](https://react.dev/), [TypeScript 5.9](https://www.typescriptlang.org/) (mode strict)                                                                       |
+| Build           | [Vite 8](https://vite.dev/) (Rolldown)                                                                                                                                |
+| Styles          | [Tailwind CSS 4](https://tailwindcss.com/) (CSS-first, `@tailwindcss/vite`), `tw-animate-css`                                                                         |
+| Composants      | [shadcn/ui](https://ui.shadcn.com/) (Radix UI Popover), [react-day-picker 9](https://daypicker.dev/) + locale `fr` de `date-fns` pour le sélecteur de date et d'heure |
+| Icônes / toasts | [lucide-react](https://lucide.dev/), [Sonner](https://sonner.emilkowal.ski/)                                                                                          |
+| Validation      | [Zod 4](https://zod.dev/) via `zod/mini`, mode `jitless` (compatible avec la CSP)                                                                                     |
+| Qualité         | [Biome 2](https://biomejs.dev/) (lint + formatage)                                                                                                                    |
+| Polices         | Auto-hébergée : `@fontsource-variable/inter`                                                                                                                          |
+| Données         | [OpenWeatherMap](https://openweathermap.org/api)                                                                                                                      |
 
 ---
 

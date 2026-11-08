@@ -56,12 +56,29 @@ function toCalendarDate(value: string): Date | undefined {
 const fromCalendarDate = (d: Date) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+/**
+ * Formateurs créés une seule fois : construire un Intl.DateTimeFormat coûte cher
+ * (mesuré ~20 ms), et chaque carte en formate deux à chaque rendu.
+ */
+const SHORT_DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "UTC",
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+const LONG_DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "UTC",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
 /** « AAAA-MM-JJ » formaté en UTC (aucun décalage possible). */
-function formatDateLabel(value: string, options: Intl.DateTimeFormatOptions): string {
+function formatDateLabel(value: string, format: Intl.DateTimeFormat): string {
   const m = DATE_PATTERN.exec(value);
   if (!m) return value;
-  const utc = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", ...options }).format(utc);
+  return format.format(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
 
 const toMinutes = (value: string | undefined): number | null => {
@@ -72,10 +89,10 @@ const toMinutes = (value: string | undefined): number | null => {
 const fromMinutes = (total: number) => `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
 
 const triggerClass =
-  "inline-flex min-h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-muted/60 px-3 text-sm font-medium tabular-nums text-foreground transition-[background-color,border-color,color,transform] duration-150 ease-out hover:border-primary/40 hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 data-[state=open]:border-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[state=open]:[&_svg]:text-primary";
+  "inline-flex min-h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-muted/60 px-3 text-sm font-medium tabular-nums text-foreground transition-transform duration-150 ease-out hover:border-primary/40 hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 data-[state=open]:border-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary dark:data-[state=open]:text-blue-300 pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[state=open]:[&_svg]:text-primary dark:data-[state=open]:[&_svg]:text-blue-300";
 
 const footerButtonClass =
-  "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-primary transition-[background-color,transform] duration-150 hover:bg-primary/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 pointer-coarse:min-h-11 [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-primary transition-transform duration-150 hover:bg-primary/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 pointer-coarse:min-h-11 [&_svg]:size-4";
 
 const TIME_COLUMNS = 4;
 
@@ -105,13 +122,8 @@ export function DateTimePicker({
   const [month, setMonth] = useState<Date | undefined>(selectedDay);
 
   const tzSuffix = tzLabel ? ` (heure locale, ${tzLabel})` : "";
-  const shortDate = formatDateLabel(date, { weekday: "short", day: "numeric", month: "short" });
-  const longDate = formatDateLabel(date, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const shortDate = formatDateLabel(date, SHORT_DATE_FORMAT);
+  const longDate = formatDateLabel(date, LONG_DATE_FORMAT);
 
   // Créneaux du jour choisi, bornés par minTime (premier jour) et maxTime (dernier).
   const slots = useMemo(() => {
@@ -271,7 +283,7 @@ export function DateTimePicker({
                     data-slot="time-slot"
                     aria-pressed={selected}
                     className={cn(
-                      "inline-flex min-h-9 items-center justify-center rounded-lg text-sm tabular-nums transition-[background-color,color,transform] duration-150 hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring active:scale-95 pointer-coarse:min-h-11",
+                      "inline-flex min-h-9 items-center justify-center rounded-lg text-sm tabular-nums transition-transform duration-150 hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring active:scale-95 pointer-coarse:min-h-11",
                       selected &&
                         "bg-primary font-semibold text-primary-foreground hover:bg-primary/90",
                     )}

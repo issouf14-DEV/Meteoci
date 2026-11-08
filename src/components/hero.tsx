@@ -18,7 +18,6 @@ function HeroImpl() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduced = useReducedMotion();
   const [saveData] = useState(prefersSaveData);
-  const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [onScreen, setOnScreen] = useState(true);
   const [pageVisible, setPageVisible] = useState(
@@ -68,17 +67,14 @@ function HeroImpl() {
         <video
           ref={videoRef}
           className="hero__video"
-          style={{ opacity: ready ? 1 : 0 }}
           muted
           loop
           playsInline
           preload="metadata"
-          poster="./video/poster.webp"
+          poster={`${import.meta.env.BASE_URL}video/poster.webp`}
           aria-hidden="true"
           tabIndex={-1}
           disablePictureInPicture
-          onLoadedData={() => setReady(true)}
-          onPlaying={() => setReady(true)}
           onError={() => setFailed(true)}
         >
           <source src={VIDEO_SRC} type="video/mp4" onError={() => setFailed(true)} />

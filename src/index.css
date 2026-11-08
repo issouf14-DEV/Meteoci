@@ -271,15 +271,6 @@
     }
   }
 
-  /* biome-ignore-start lint/complexity/noImportantStyles: pendant le changement de thème, aucune transition (sinon des centaines d'éléments s'animent : INP élevé). */
-  .theme-switching,
-  .theme-switching *,
-  .theme-switching *::before,
-  .theme-switching *::after {
-    transition: none !important;
-  }
-  /* biome-ignore-end lint/complexity/noImportantStyles: fin du bloc theme-switching */
-
   /* biome-ignore-start lint/complexity/noImportantStyles: la préférence « réduire les animations » doit l'emporter sur toutes les animations et transitions des utilitaires. */
   @media (prefers-reduced-motion: reduce) {
     *,

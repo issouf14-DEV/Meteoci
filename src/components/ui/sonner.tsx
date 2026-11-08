@@ -18,7 +18,9 @@ function Toaster(props: ToasterProps) {
       mobileOffset={{ top: "92px", left: "16px", right: "16px" }}
       closeButton
       toastOptions={{
+        closeButtonAriaLabel: "Fermer la notification",
         classNames: {
+          closeButton: "pointer-coarse:size-11",
           toast:
             "group toast group-[.toaster]:bg-card group-[.toaster]:text-card-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg group-[.toaster]:font-sans",
           description: "group-[.toast]:text-muted-foreground",

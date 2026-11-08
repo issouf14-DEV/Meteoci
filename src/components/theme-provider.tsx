@@ -42,21 +42,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [explicit, setExplicit] = useState(() => readStoredTheme() !== null);
 
   useLayoutEffect(() => {
+    // Les transitions du site ne portent que sur `transform` : changer de thème ne
+    // déclenche aucune animation de couleur, un seul recalcul de styles suffit.
+    // Au premier rendu, theme-init.js a déjà posé la bonne classe : rien ne change.
     const root = document.documentElement;
-    // Aucune transition pendant le changement de thème (classe définie dans index.css,
-    // compatible CSP) : sinon chaque élément anime ses couleurs et le clic semble figé.
-    root.classList.add("theme-switching");
-    root.classList.toggle("dark", theme === "dark");
+    if (root.classList.contains("dark") !== (theme === "dark")) {
+      root.classList.toggle("dark", theme === "dark");
+    }
     document
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute("content", THEME_COLORS[theme]);
-    // Force le calcul des styles sans transition, puis les réactive à l'image suivante.
-    void root.offsetWidth;
-    const frame = requestAnimationFrame(() => root.classList.remove("theme-switching"));
-    return () => {
-      cancelAnimationFrame(frame);
-      root.classList.remove("theme-switching");
-    };
   }, [theme]);
 
   // Persistance hors de la fonction de mise à jour d'état (pas d'effet de bord rejoué en StrictMode).

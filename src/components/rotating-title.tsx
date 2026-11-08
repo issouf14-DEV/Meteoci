@@ -13,7 +13,6 @@ const TYPE_MS = 100;
 const DELETE_MS = 60;
 const HOLD_MS = 1000;
 const NEXT_MS = 300;
-const FADE_INTERVAL_MS = 4000;
 
 /** Titre animé (effet machine à écrire + curseur clignotant), rendu en texte React. */
 function RotatingTitleImpl() {
@@ -25,13 +24,8 @@ function RotatingTitleImpl() {
   const word = MESSAGES[index];
 
   useEffect(() => {
-    if (reduced) {
-      const id = window.setInterval(
-        () => setIndex((i) => (i + 1) % MESSAGES.length),
-        FADE_INTERVAL_MS,
-      );
-      return () => window.clearInterval(id);
-    }
+    // « Réduire les animations » : un seul message fixe, aucun changement (WCAG 2.2.2).
+    if (reduced) return;
 
     let delay: number;
     let step: () => void;
