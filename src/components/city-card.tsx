@@ -1,4 +1,3 @@
-import { memo, useId, useMemo, useState, type CSSProperties } from "react";
 import {
   AlertTriangle,
   ArrowDown,
@@ -16,6 +15,7 @@ import {
   Wind,
   X,
 } from "lucide-react";
+import { type CSSProperties, memo, useId, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,8 @@ import {
   toTimeInputValue,
 } from "@/lib/date";
 import { cn } from "@/lib/utils";
-import { getWeatherVisual } from "@/lib/weather-icons";
 import type { WeatherSnapshot } from "@/lib/weather";
+import { getWeatherVisual } from "@/lib/weather-icons";
 
 interface CityCardProps {
   city: City;
@@ -55,12 +55,20 @@ interface Selection {
 const round = (n: number) => Math.round(n);
 const capitalize = (s: string) => (s ? s.charAt(0).toLocaleUpperCase("fr-FR") + s.slice(1) : s);
 
-function CityCardImpl({ city, index, refreshKey, highlighted, hidden = false, onRemove }: CityCardProps) {
+function CityCardImpl({
+  city,
+  index,
+  refreshKey,
+  highlighted,
+  hidden = false,
+  onRemove,
+}: CityCardProps) {
   const uid = useId();
   const [selection, setSelection] = useState<Selection | null>(null);
   const [leaving, setLeaving] = useState(false);
 
   // Recalculé à chaque rafraîchissement pour garder "maintenant" à jour.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `refreshKey` sert uniquement de déclencheur pour recalculer la date courante.
   const now = useMemo(() => new Date(), [refreshKey]);
   const today = toDateInputValue(now);
   const maxDate = toDateInputValue(addDays(now, 5));
@@ -102,9 +110,10 @@ function CityCardImpl({ city, index, refreshKey, highlighted, hidden = false, on
       style={style}
       className={cn(
         "group relative flex scroll-mt-28 flex-col overflow-hidden border-border/70 transition-transform duration-300 ease-out hover:-translate-y-1",
-        "animate-in fade-in-0 slide-in-from-bottom-4 fill-mode-backwards [animation-duration:500ms]",
+        "animate-in fade-in-0 slide-in-from-bottom-4 fill-mode-backwards animation-duration-500",
         hidden && "hidden",
-        leaving && "pointer-events-none animate-out fade-out-0 zoom-out-95 fill-mode-forwards [animation-delay:0ms] [animation-duration:200ms]",
+        leaving &&
+          "pointer-events-none animate-out fade-out-0 zoom-out-95 fill-mode-forwards [--tw-animation-delay:0ms] animation-duration-200",
       )}
     >
       {/* Ombre de survol (opacité uniquement) */}
@@ -123,7 +132,7 @@ function CityCardImpl({ city, index, refreshKey, highlighted, hidden = false, on
       <span
         aria-hidden="true"
         className={cn(
-          "h-1 w-full bg-gradient-to-r transition-opacity duration-500",
+          "h-1 w-full bg-linear-to-r/srgb transition-opacity duration-500",
           visual ? visual.bar : "from-muted to-muted",
         )}
       />
@@ -131,7 +140,10 @@ function CityCardImpl({ city, index, refreshKey, highlighted, hidden = false, on
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 id={`${uid}-title`} className="truncate font-heading text-lg font-semibold leading-tight">
+            <h3
+              id={`${uid}-title`}
+              className="truncate font-heading text-lg font-semibold leading-tight"
+            >
               {city.name}
             </h3>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -146,7 +158,10 @@ function CityCardImpl({ city, index, refreshKey, highlighted, hidden = false, on
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {weather.status === "loading" && weather.data && (
-              <Loader2 aria-label="Actualisation" className="size-4 animate-spin text-muted-foreground" />
+              <Loader2
+                aria-label="Actualisation"
+                className="size-4 animate-spin text-muted-foreground"
+              />
             )}
             {onRemove && (
               <Tooltip>
@@ -195,7 +210,11 @@ function CityCardImpl({ city, index, refreshKey, highlighted, hidden = false, on
 
         <div className="flex flex-1 flex-col">
           {weather.status === "error" ? (
-            <ErrorState message={weather.error} noKey={weather.code === "NO_KEY"} onRetry={weather.retry} />
+            <ErrorState
+              message={weather.error}
+              noKey={weather.code === "NO_KEY"}
+              onRetry={weather.retry}
+            />
           ) : weather.data && visual ? (
             <WeatherBody data={weather.data} visual={visual} />
           ) : (
@@ -208,12 +227,16 @@ function CityCardImpl({ city, index, refreshKey, highlighted, hidden = false, on
             {weather.data?.isForecast ? (
               <>
                 <CalendarClock aria-hidden="true" className="size-3.5 shrink-0" />
-                <span className="truncate">Prévision · {formatDateTime(new Date(weather.data.timestamp))}</span>
+                <span className="truncate">
+                  Prévision · {formatDateTime(new Date(weather.data.timestamp))}
+                </span>
               </>
             ) : weather.data ? (
               <>
                 <Clock aria-hidden="true" className="size-3.5 shrink-0" />
-                <span className="truncate">Actuellement · mis à jour à {formatTime(new Date(weather.data.fetchedAt))}</span>
+                <span className="truncate">
+                  Actuellement · mis à jour à {formatTime(new Date(weather.data.fetchedAt))}
+                </span>
               </>
             ) : null}
           </span>
@@ -243,7 +266,7 @@ function WeatherBody({
 }) {
   const { Icon } = visual;
   return (
-    <div className="flex flex-1 flex-col gap-4 animate-in fade-in-0 [animation-duration:300ms]">
+    <div className="flex flex-1 flex-col gap-4 animate-in fade-in-0 animation-duration-300">
       <div className="flex items-center gap-4">
         <div className={cn("grid size-16 shrink-0 place-items-center rounded-2xl", visual.bg)}>
           <Icon
@@ -293,7 +316,11 @@ function WeatherBody({
       <dl className="grid grid-cols-3 gap-2 text-center">
         <Detail icon={Thermometer} label="Ressenti" value={`${round(data.feelsLike)}°`} />
         <Detail icon={Droplets} label="Humidité" value={`${round(data.humidity)}%`} />
-        <Detail icon={Wind} label="Vent" value={data.windKmh === null ? "—" : `${data.windKmh} km/h`} />
+        <Detail
+          icon={Wind}
+          label="Vent"
+          value={data.windKmh === null ? "—" : `${data.windKmh} km/h`}
+        />
       </dl>
     </div>
   );
@@ -354,7 +381,7 @@ function ErrorState({
   return (
     <div
       role="status"
-      className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4 py-6 text-center animate-in fade-in-0 [animation-duration:300ms]"
+      className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4 py-6 text-center animate-in fade-in-0 animation-duration-300"
     >
       <span className="grid size-11 place-items-center rounded-full bg-destructive/10 text-destructive">
         <Icon aria-hidden="true" className="size-5" />

@@ -25,7 +25,11 @@ export function CityGrid({
   onRemove,
 }: CityGridProps) {
   return (
-    <section id="villes" aria-labelledby="villes-titre" className="container scroll-mt-24 py-12 sm:py-16">
+    <section
+      id="villes"
+      aria-labelledby="villes-titre"
+      className="container scroll-mt-24 py-12 sm:py-16"
+    >
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
@@ -35,8 +39,8 @@ export function CityGrid({
             Villes de Côte d'Ivoire
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Choisissez une date et une heure sur chaque carte pour consulter les prévisions
-            jusqu'à 5 jours. Recherchez une ville pour l'ajouter.
+            Choisissez une date et une heure sur chaque carte pour consulter les prévisions jusqu'à
+            5 jours. Recherchez une ville pour l'ajouter.
           </p>
         </div>
         <p className="shrink-0 text-sm text-muted-foreground" aria-live="polite">
@@ -45,7 +49,7 @@ export function CityGrid({
       </div>
 
       {filteredCity && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-sm animate-in fade-in-0 slide-in-from-top-2 [animation-duration:250ms]">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs animate-in fade-in-0 slide-in-from-top-2 animation-duration-250">
           <p className="flex items-center gap-2 text-sm">
             <MapPin aria-hidden="true" className="size-4 text-primary" />
             Affichage de <span className="font-semibold">{filteredCity.name}</span>

@@ -10,12 +10,12 @@ import {
   CloudSun,
   Cloudy,
   Haze,
+  type LucideIcon,
   Moon,
   Snowflake,
   Sun,
   Tornado,
   Wind,
-  type LucideIcon,
 } from "lucide-react";
 
 export interface WeatherVisual {
@@ -51,7 +51,11 @@ const PARTLY: WeatherVisual = {
   bar: "from-amber-300 to-sky-400",
   motion: "float",
 };
-const PARTLY_NIGHT: WeatherVisual = { ...MOON, Icon: CloudMoon, bar: "from-indigo-300 to-slate-400" };
+const PARTLY_NIGHT: WeatherVisual = {
+  ...MOON,
+  Icon: CloudMoon,
+  bar: "from-indigo-300 to-slate-400",
+};
 const CLOUD: WeatherVisual = {
   Icon: Cloud,
   color: "text-slate-500 dark:text-slate-300",
@@ -74,7 +78,11 @@ const RAIN: WeatherVisual = {
   bar: "from-blue-400 to-cyan-600",
   motion: "float",
 };
-const HEAVY_RAIN: WeatherVisual = { ...RAIN, Icon: CloudRainWind, bar: "from-blue-500 to-indigo-700" };
+const HEAVY_RAIN: WeatherVisual = {
+  ...RAIN,
+  Icon: CloudRainWind,
+  bar: "from-blue-500 to-indigo-700",
+};
 const THUNDER: WeatherVisual = {
   Icon: CloudLightning,
   color: "text-purple-500 dark:text-purple-400",
@@ -104,7 +112,12 @@ const HAZE: WeatherVisual = {
   bar: "from-orange-200 to-amber-400",
   motion: "float",
 };
-const SMOKE: WeatherVisual = { ...HAZE, color: "text-gray-500 dark:text-gray-400", bg: "bg-gray-400/15", bar: "from-gray-300 to-gray-500" };
+const SMOKE: WeatherVisual = {
+  ...HAZE,
+  color: "text-gray-500 dark:text-gray-400",
+  bg: "bg-gray-400/15",
+  bar: "from-gray-300 to-gray-500",
+};
 const DUST: WeatherVisual = {
   Icon: Wind,
   color: "text-yellow-600 dark:text-yellow-500",
@@ -112,7 +125,12 @@ const DUST: WeatherVisual = {
   bar: "from-yellow-300 to-amber-600",
   motion: "float",
 };
-const SQUALL: WeatherVisual = { ...DUST, color: "text-sky-400", bg: "bg-sky-300/15", bar: "from-sky-200 to-sky-500" };
+const SQUALL: WeatherVisual = {
+  ...DUST,
+  color: "text-sky-400",
+  bg: "bg-sky-300/15",
+  bar: "from-sky-200 to-sky-500",
+};
 const TORNADO: WeatherVisual = {
   Icon: Tornado,
   color: "text-red-500",

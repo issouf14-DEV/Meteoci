@@ -39,7 +39,7 @@ export function purgeLegacyStorage(): void {
         toRemove.push(key);
       }
     }
-    toRemove.forEach((key) => storage.removeItem(key));
+    for (const key of toRemove) storage.removeItem(key);
   } catch {
     /* stockage indisponible : rien à purger */
   }

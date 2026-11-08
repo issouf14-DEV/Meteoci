@@ -6,7 +6,7 @@ import { SITE, SOCIAL_LINKS } from "@/lib/site";
 const EXTERNAL = { target: "_blank", rel: "noopener noreferrer" } as const;
 
 const linkClass =
-  "inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background";
+  "inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -16,7 +16,7 @@ export function Footer() {
       <div className="container grid gap-10 py-12 md:grid-cols-[1.5fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-secondary text-white">
+            <span className="grid size-9 place-items-center rounded-xl bg-linear-to-br/srgb from-primary to-secondary text-white">
               <CloudSun aria-hidden="true" className="size-5" />
             </span>
             <span className="font-heading text-xl font-bold">
@@ -30,7 +30,10 @@ export function Footer() {
         </div>
 
         <nav aria-labelledby="footer-liens">
-          <h2 id="footer-liens" className="font-heading text-sm font-semibold uppercase tracking-wider">
+          <h2
+            id="footer-liens"
+            className="font-heading text-sm font-semibold uppercase tracking-wider"
+          >
             Liens utiles
           </h2>
           <ul className="mt-4 space-y-2.5">
@@ -62,7 +65,9 @@ export function Footer() {
         </nav>
 
         <div>
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider">Suivez-nous</h2>
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider">
+            Suivez-nous
+          </h2>
           <ul className="mt-4 flex flex-wrap gap-2">
             {SOCIAL_LINKS.map(({ label, href, Icon }) => {
               const external = href.startsWith("http");
@@ -72,7 +77,7 @@ export function Footer() {
                     href={href}
                     aria-label={external ? `${label} (nouvel onglet)` : label}
                     title={label}
-                    className="grid size-10 place-items-center rounded-full border bg-background text-muted-foreground transition-[transform,color] duration-200 ease-out hover:-translate-y-0.5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background active:scale-95"
+                    className="grid size-10 place-items-center rounded-full border bg-background text-muted-foreground transition-[transform,translate,scale,color] duration-200 ease-out hover:-translate-y-0.5 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background active:scale-95"
                     {...(external ? EXTERNAL : {})}
                   >
                     <Icon aria-hidden="true" className="size-4" />
@@ -92,7 +97,11 @@ export function Footer() {
           Développé par <span className="font-medium text-foreground">{SITE.author}</span>
           <span aria-hidden="true"> · </span>
           Données{" "}
-          <a href="https://openweathermap.org/" className="underline-offset-4 hover:underline" {...EXTERNAL}>
+          <a
+            href="https://openweathermap.org/"
+            className="underline-offset-4 hover:underline"
+            {...EXTERNAL}
+          >
             OpenWeatherMap
           </a>
         </p>

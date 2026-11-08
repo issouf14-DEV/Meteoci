@@ -1,9 +1,9 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Globe, Loader2, MapPin, Search, X } from "lucide-react";
+import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { normalizeName, type City } from "@/lib/cities";
+import { type City, normalizeName } from "@/lib/cities";
 import { cn } from "@/lib/utils";
 import { CITY_NAME_MAX_LENGTH } from "@/lib/validation";
 
@@ -147,133 +147,136 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
     : "";
 
   return (
-    <form
-      role="search"
-      aria-label="Rechercher une ville"
-      className={cn("relative w-full", className)}
-      onSubmit={(event) => {
-        event.preventDefault();
-        submit();
-      }}
-    >
-      <label htmlFor={`${listboxId}-input`} className="sr-only">
-        Rechercher une ville
-      </label>
-      <Search
-        aria-hidden="true"
-        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-      />
-      <Input
-        ref={inputRef}
-        id={`${listboxId}-input`}
-        type="text"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={expanded}
-        aria-controls={listboxId}
-        aria-activedescendant={expanded && activeIndex >= 0 ? optionId(activeIndex) : undefined}
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-        enterKeyHint="search"
-        maxLength={CITY_NAME_MAX_LENGTH}
-        placeholder="Rechercher une ville..."
-        value={value}
-        readOnly={busy}
-        aria-busy={busy}
-        onChange={(event) => {
-          const next = event.target.value;
-          setValue(next);
-          setOpen(true);
-          setActiveIndex(-1);
-          if (!next.trim()) onClear();
+    <search className={cn("relative block w-full", className)}>
+      <form
+        aria-label="Rechercher une ville"
+        className="relative w-full"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit();
         }}
-        onFocus={() => setOpen(true)}
-        onBlur={close}
-        onKeyDown={onKeyDown}
-        className="h-11 rounded-full border-border/80 bg-card/70 pl-10 pr-24 shadow-sm"
-      />
+      >
+        <label htmlFor={`${listboxId}-input`} className="sr-only">
+          Rechercher une ville
+        </label>
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          ref={inputRef}
+          id={`${listboxId}-input`}
+          type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={expanded}
+          aria-controls={listboxId}
+          aria-activedescendant={expanded && activeIndex >= 0 ? optionId(activeIndex) : undefined}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          enterKeyHint="search"
+          maxLength={CITY_NAME_MAX_LENGTH}
+          placeholder="Rechercher une ville..."
+          value={value}
+          readOnly={busy}
+          aria-busy={busy}
+          onChange={(event) => {
+            const next = event.target.value;
+            setValue(next);
+            setOpen(true);
+            setActiveIndex(-1);
+            if (!next.trim()) onClear();
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={close}
+          onKeyDown={onKeyDown}
+          className="h-11 rounded-full border-border/80 bg-card/70 pl-10 pr-24 shadow-xs"
+        />
 
-      <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
-        {value && !busy ? (
+        <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
+          {value && !busy ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full text-muted-foreground"
+              aria-label="Effacer la recherche"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                setValue("");
+                onClear();
+                inputRef.current?.focus();
+              }}
+            >
+              <X />
+            </Button>
+          ) : (
+            <kbd className="pointer-events-none mr-1 hidden select-none items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground md:inline-flex">
+              Ctrl K
+            </kbd>
+          )}
           <Button
-            variant="ghost"
+            type="submit"
             size="icon-sm"
-            className="rounded-full text-muted-foreground"
-            aria-label="Effacer la recherche"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              setValue("");
-              onClear();
-              inputRef.current?.focus();
-            }}
+            className="rounded-full"
+            aria-label="Lancer la recherche"
+            disabled={busy}
           >
-            <X />
+            {busy ? <Loader2 className="animate-spin" /> : <Search />}
           </Button>
-        ) : (
-          <kbd className="pointer-events-none mr-1 hidden select-none items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground md:inline-flex">
-            Ctrl K
-          </kbd>
+        </div>
+
+        {expanded && (
+          <div
+            id={listboxId}
+            role="listbox"
+            aria-label="Suggestions de villes"
+            className="absolute inset-x-0 top-full z-50 mt-2 max-h-80 overflow-y-auto overscroll-contain rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 animation-duration-150"
+          >
+            {options.map((option, index) => {
+              const active = index === activeIndex;
+              return (
+                // biome-ignore lint/a11y/useKeyWithClickEvents: motif combobox ARIA (aria-activedescendant) : le clavier est géré par le champ de saisie (flèches, Entrée, Échap), le focus ne quitte jamais l'input.
+                <div
+                  key={option.kind === "city" ? option.city.id : "__search__"}
+                  id={optionId(index)}
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={active}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => choose(option)}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150",
+                    active ? "bg-muted" : "hover:bg-muted/60",
+                  )}
+                >
+                  {option.kind === "city" ? (
+                    <>
+                      <MapPin aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                      <span className="truncate font-medium">{option.city.name}</span>
+                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                        {option.city.region}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Globe aria-hidden="true" className="size-4 shrink-0 text-success" />
+                      <span className="truncate">
+                        Rechercher <span className="font-medium">« {option.label} »</span>
+                      </span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
-        <Button
-          type="submit"
-          size="icon-sm"
-          className="rounded-full"
-          aria-label="Lancer la recherche"
-          disabled={busy}
-        >
-          {busy ? <Loader2 className="animate-spin" /> : <Search />}
-        </Button>
-      </div>
 
-      {expanded && (
-        <ul
-          id={listboxId}
-          role="listbox"
-          aria-label="Suggestions de villes"
-          className="absolute inset-x-0 top-full z-50 mt-2 max-h-80 overflow-y-auto overscroll-contain rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 [animation-duration:150ms]"
-        >
-          {options.map((option, index) => {
-            const active = index === activeIndex;
-            return (
-              <li
-                key={option.kind === "city" ? option.city.id : "__search__"}
-                id={optionId(index)}
-                role="option"
-                aria-selected={active}
-                onMouseDown={(event) => event.preventDefault()}
-                onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => choose(option)}
-                className={cn(
-                  "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150",
-                  active ? "bg-muted" : "hover:bg-muted/60",
-                )}
-              >
-                {option.kind === "city" ? (
-                  <>
-                    <MapPin aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                    <span className="truncate font-medium">{option.city.name}</span>
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                      {option.city.region}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Globe aria-hidden="true" className="size-4 shrink-0 text-success" />
-                    <span className="truncate">
-                      Rechercher <span className="font-medium">« {option.label} »</span>
-                    </span>
-                  </>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      <p className="sr-only" aria-live="polite" aria-atomic="true">
-        {busy ? "Recherche en cours..." : liveMessage}
-      </p>
-    </form>
+        <p className="sr-only" aria-live="polite" aria-atomic="true">
+          {busy ? "Recherche en cours..." : liveMessage}
+        </p>
+      </form>
+    </search>
   );
 }

@@ -1,4 +1,6 @@
-import { Facebook, Github, Instagram, Mail, MessageCircle, Twitter, Youtube, type LucideIcon } from "lucide-react";
+import { type LucideIcon, Mail, MessageCircle } from "lucide-react";
+
+import { Facebook, Github, Instagram, Twitter, Youtube } from "@/lib/brand-icons";
 
 export const SITE = {
   name: "Météo CI",

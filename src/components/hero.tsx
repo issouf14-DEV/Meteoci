@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { ArrowDown, Clock, MapPin, Pause, Play, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { RotatingTitle } from "@/components/rotating-title";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +35,7 @@ export function Hero({ cityCount }: { cityCount: number }) {
       {/* Fond de repli (dégradé aux couleurs de la marque) */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-20 bg-gradient-to-br from-blue-900 via-primary to-secondary"
+        className="absolute inset-0 -z-20 bg-linear-to-br/srgb from-blue-900 via-primary to-secondary"
       />
       {!failed && (
         <video
@@ -61,13 +61,13 @@ export function Hero({ cityCount }: { cityCount: number }) {
       )}
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-slate-950/60 via-slate-950/40 to-background"
+        className="absolute inset-0 -z-10 bg-linear-to-b/srgb from-slate-950/60 via-slate-950/40 to-background"
       />
 
       <div className="container flex min-h-[68vh] flex-col items-center justify-center py-20 text-center text-white sm:min-h-[72vh]">
         <Badge
           variant="glass"
-          className="mb-6 px-3 py-1 text-sm animate-in fade-in-0 slide-in-from-bottom-2 [animation-duration:600ms]"
+          className="mb-6 px-3 py-1 text-sm animate-in fade-in-0 slide-in-from-bottom-2 animation-duration-600"
         >
           <MapPin aria-hidden="true" />
           Côte d'Ivoire
@@ -77,12 +77,12 @@ export function Hero({ cityCount }: { cityCount: number }) {
           <RotatingTitle />
         </div>
 
-        <p className="mt-5 max-w-2xl text-pretty text-base text-white/85 animate-in fade-in-0 slide-in-from-bottom-3 [animation-delay:150ms] [animation-duration:700ms] fill-mode-backwards sm:text-lg">
-          Prévisions météorologiques en temps réel pour les principales villes ivoiriennes,
-          jusqu'à 5 jours à l'avance.
+        <p className="mt-5 max-w-2xl text-pretty text-base text-white/85 animate-in fade-in-0 slide-in-from-bottom-3 [--tw-animation-delay:150ms] animation-duration-700 fill-mode-backwards sm:text-lg">
+          Prévisions météorologiques en temps réel pour les principales villes ivoiriennes, jusqu'à
+          5 jours à l'avance.
         </p>
 
-        <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm animate-in fade-in-0 [animation-delay:300ms] [animation-duration:700ms] fill-mode-backwards">
+        <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm animate-in fade-in-0 [--tw-animation-delay:300ms] animation-duration-700 fill-mode-backwards">
           <li>
             <Badge variant="glass" className="px-3 py-1">
               <MapPin aria-hidden="true" /> {cityCount} villes
@@ -104,7 +104,7 @@ export function Hero({ cityCount }: { cityCount: number }) {
           asChild
           size="lg"
           variant="accent"
-          className="mt-9 rounded-full shadow-lg shadow-black/20 animate-in fade-in-0 zoom-in-95 [animation-delay:450ms] [animation-duration:600ms] fill-mode-backwards hover:-translate-y-0.5"
+          className="mt-9 rounded-full shadow-lg shadow-black/20 animate-in fade-in-0 zoom-in-95 [--tw-animation-delay:450ms] animation-duration-600 fill-mode-backwards hover:-translate-y-0.5"
         >
           <a href="#villes">
             Voir les prévisions
@@ -118,7 +118,9 @@ export function Hero({ cityCount }: { cityCount: number }) {
           variant="ghost"
           size="icon-sm"
           className="absolute bottom-4 right-4 rounded-full bg-black/25 text-white backdrop-blur-md hover:bg-black/40 hover:text-white"
-          aria-label={paused ? "Lire la vidéo d'arrière-plan" : "Mettre en pause la vidéo d'arrière-plan"}
+          aria-label={
+            paused ? "Lire la vidéo d'arrière-plan" : "Mettre en pause la vidéo d'arrière-plan"
+          }
           onClick={() => setUserPaused(!paused)}
         >
           {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}

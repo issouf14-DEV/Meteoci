@@ -11,9 +11,11 @@ export function ApiKeyBanner() {
         <div>
           <p className="font-semibold">Clé API OpenWeatherMap manquante</p>
           <p className="mt-1 text-muted-foreground">
-            Ajoutez <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">VITE_OWM_API_KEY</code>{" "}
-            dans le fichier <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">.env.local</code>{" "}
-            (ou dans les secrets GitHub pour le déploiement), puis relancez l'application.
+            Ajoutez{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">VITE_OWM_API_KEY</code>{" "}
+            dans le fichier{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">.env.local</code> (ou
+            dans les secrets GitHub pour le déploiement), puis relancez l'application.
           </p>
         </div>
       </div>

@@ -1,11 +1,27 @@
 /**
  * Couche d'accès à l'API OpenWeatherMap.
- * - réponses typées
+ * - réponses validées à l'exécution (schémas Zod)
  * - timeout via AbortController
  * - cache mémoire (5 min) + déduplication des requêtes en vol
  * - limitation de concurrence et espacement des requêtes (anti rate-limit)
  * - messages d'erreur en français
  */
+
+import type { z } from "zod";
+
+import { API_KEY, hasApiKey } from "@/lib/env";
+import {
+  type OwmCondition,
+  type OwmCurrentResponse,
+  type OwmForecastItem,
+  type OwmForecastResponse,
+  type OwmMain,
+  type OwmWind,
+  owmCurrentResponseSchema,
+  owmForecastResponseSchema,
+} from "@/lib/schemas";
+
+export type { OwmCurrentResponse, OwmForecastItem, OwmForecastResponse };
 
 const API_BASE = "https://api.openweathermap.org/data/2.5";
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -17,61 +33,13 @@ const CURRENT_TOLERANCE_MS = 90 * 60 * 1000;
 /** Écart maximal entre l'heure demandée et l'entrée de prévision la plus proche. */
 const FORECAST_TOLERANCE_MS = 3 * 60 * 60 * 1000;
 
-export const API_KEY: string = (import.meta.env.VITE_OWM_API_KEY ?? "").trim();
-export const hasApiKey = API_KEY.length > 0;
+export { hasApiKey };
 
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
 /* -------------------------------------------------------------------------- */
 
 export type LocationQuery = { q: string } | { id: number };
-
-export interface OwmCondition {
-  id: number;
-  main: string;
-  description: string;
-  icon: string;
-}
-
-export interface OwmMain {
-  temp: number;
-  feels_like: number;
-  temp_min: number;
-  temp_max: number;
-  pressure: number;
-  humidity: number;
-}
-
-export interface OwmWind {
-  speed: number;
-  deg?: number;
-  gust?: number;
-}
-
-export interface OwmCurrentResponse {
-  id: number;
-  name: string;
-  dt: number;
-  timezone: number;
-  weather: OwmCondition[];
-  main: OwmMain;
-  wind?: OwmWind;
-  sys?: { country?: string; sunrise?: number; sunset?: number };
-}
-
-export interface OwmForecastItem {
-  dt: number;
-  main: OwmMain;
-  weather: OwmCondition[];
-  wind?: OwmWind;
-  pop?: number;
-  dt_txt?: string;
-}
-
-export interface OwmForecastResponse {
-  list: OwmForecastItem[];
-  city: { id: number; name: string; country?: string; timezone?: number };
-}
 
 export interface WeatherSnapshot {
   conditionId: number;
@@ -230,7 +198,7 @@ export function clearWeatherCache(): void {
 /*                                  Requêtes                                  */
 /* -------------------------------------------------------------------------- */
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson(url: string): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -255,7 +223,7 @@ async function fetchJson<T>(url: string): Promise<T> {
   if (!response.ok) throw errorFromStatus(response.status);
 
   try {
-    return (await response.json()) as T;
+    return (await response.json()) as unknown;
   } catch {
     throw new WeatherError("BAD_RESPONSE", "Réponse invalide du service météo.");
   }
@@ -281,7 +249,21 @@ function withSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
   });
 }
 
-function request<T>(endpoint: "weather" | "forecast", query: LocationQuery, signal?: AbortSignal): Promise<T> {
+/** Valide une réponse brute ; lève une erreur typée si elle ne respecte pas le schéma. */
+function parseResponse<S extends z.ZodType>(schema: S, data: unknown): z.infer<S> {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    throw new WeatherError("BAD_RESPONSE", "Réponse météo invalide");
+  }
+  return result.data;
+}
+
+function request<S extends z.ZodType>(
+  endpoint: "weather" | "forecast",
+  query: LocationQuery,
+  schema: S,
+  signal?: AbortSignal,
+): Promise<z.infer<S>> {
   if (!hasApiKey) {
     return Promise.reject(new WeatherError("NO_KEY", "Clé API manquante"));
   }
@@ -289,10 +271,10 @@ function request<T>(endpoint: "weather" | "forecast", query: LocationQuery, sign
   const key = cacheKey(endpoint, query);
   const cached = cache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
-    return Promise.resolve(cached.data as T);
+    return Promise.resolve(cached.data as z.infer<S>);
   }
 
-  let pending = inFlight.get(key) as Promise<T> | undefined;
+  let pending = inFlight.get(key) as Promise<z.infer<S>> | undefined;
   if (!pending) {
     const params = new URLSearchParams({
       ...queryParams(query),
@@ -302,8 +284,9 @@ function request<T>(endpoint: "weather" | "forecast", query: LocationQuery, sign
     });
     const url = `${API_BASE}/${endpoint}?${params.toString()}`;
 
-    pending = schedule(() => fetchJson<T>(url))
-      .then((data) => {
+    pending = schedule(() => fetchJson(url))
+      .then((raw) => {
+        const data = parseResponse(schema, raw);
         cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
         return data;
       })
@@ -314,29 +297,18 @@ function request<T>(endpoint: "weather" | "forecast", query: LocationQuery, sign
   return withSignal(pending, signal);
 }
 
-function assertCurrent(data: OwmCurrentResponse): OwmCurrentResponse {
-  if (!data?.main || !Array.isArray(data.weather) || data.weather.length === 0) {
-    throw new WeatherError("BAD_RESPONSE", "Données météo incomplètes.");
-  }
-  return data;
-}
-
-export async function getCurrentWeather(
+export function getCurrentWeather(
   query: LocationQuery,
   signal?: AbortSignal,
 ): Promise<OwmCurrentResponse> {
-  return assertCurrent(await request<OwmCurrentResponse>("weather", query, signal));
+  return request("weather", query, owmCurrentResponseSchema, signal);
 }
 
-export async function getForecast(
+export function getForecast(
   query: LocationQuery,
   signal?: AbortSignal,
 ): Promise<OwmForecastResponse> {
-  const data = await request<OwmForecastResponse>("forecast", query, signal);
-  if (!data || !Array.isArray(data.list)) {
-    throw new WeatherError("BAD_RESPONSE", "Prévisions indisponibles.");
-  }
-  return data;
+  return request("forecast", query, owmForecastResponseSchema, signal);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -347,7 +319,13 @@ const msToKmh = (speed: number | undefined) =>
   typeof speed === "number" && Number.isFinite(speed) ? Math.round(speed * 3.6) : null;
 
 function snapshotFrom(
-  item: { dt: number; main: OwmMain; weather: OwmCondition[]; wind?: OwmWind; pop?: number },
+  item: {
+    dt: number;
+    main: OwmMain;
+    weather: OwmCondition[];
+    wind?: OwmWind | undefined;
+    pop?: number | undefined;
+  },
   isForecast: boolean,
 ): WeatherSnapshot {
   const condition = item.weather[0];
@@ -397,7 +375,7 @@ export async function getWeatherAt(
   let minDiff = Number.POSITIVE_INFINITY;
   for (const item of forecast.list) {
     const diff = Math.abs(item.dt * 1000 - targetMs);
-    if (diff < minDiff && item.main && item.weather?.length) {
+    if (diff < minDiff) {
       minDiff = diff;
       closest = item;
     }

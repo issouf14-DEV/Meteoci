@@ -1,64 +1,238 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Palette Météo CI (valeurs HSL des couleurs d'origine, inchangées) */
+:root {
+  --background: hsl(210 40% 98%); /* #f8fafc */
+  --foreground: hsl(222 47% 11%); /* #0f172a */
+  --muted: hsl(210 40% 96%); /* #f1f5f9 */
+  --muted-foreground: hsl(215 19% 35%); /* #475569 */
+  --faint: hsl(215 20% 65%); /* #94a3b8 */
+  --surface: hsl(214 32% 91%); /* #e2e8f0 */
+  --card: hsl(0 0% 100%); /* #ffffff */
+  --card-foreground: hsl(222 47% 11%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 47% 11%);
+  --primary: hsl(226 71% 40%); /* #1e40af */
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(192 91% 36%); /* #0891b2 */
+  --secondary-foreground: hsl(0 0% 100%);
+  --accent: hsl(38 92% 50%); /* #f59e0b */
+  --accent-foreground: hsl(222 47% 11%);
+  --success: hsl(160 84% 39%); /* #10b981 */
+  --success-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 84% 60%); /* #ef4444 */
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(214 32% 91%); /* #e2e8f0 */
+  --input: hsl(214 32% 91%);
+  --ring: hsl(226 71% 40%);
+  --radius: 0.875rem;
+}
+
+.dark {
+  --background: hsl(224 50% 9%); /* #0b1121 */
+  --foreground: hsl(210 40% 96%); /* #f1f5f9 */
+  --muted: hsl(227 35% 16%); /* #1a2036 */
+  --muted-foreground: hsl(215 20% 65%); /* #94a3b8 */
+  --faint: hsl(215 16% 47%); /* #64748b */
+  --surface: hsl(227 33% 23%); /* #272f4d */
+  --card: hsl(226 37% 13%); /* #151b2e */
+  --card-foreground: hsl(210 40% 96%);
+  --popover: hsl(226 37% 13%);
+  --popover-foreground: hsl(210 40% 96%);
+  --primary: hsl(217 91% 60%); /* #3b82f6 */
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(192 91% 36%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --accent: hsl(38 92% 50%);
+  --accent-foreground: hsl(222 47% 11%);
+  --success: hsl(160 84% 39%);
+  --success-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(218 23% 23%); /* #2d3748 */
+  --input: hsl(218 23% 23%);
+  --ring: hsl(217 91% 60%);
+}
+
+@theme inline {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-heading: "Outfit", "Inter", system-ui, sans-serif;
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-faint: var(--faint);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/*
+ * Teintes de la palette par défaut utilisées par l'application (icônes météo,
+ * badges, dégradés) : valeurs sRGB de Tailwind v3, pour un rendu identique
+ * (la palette par défaut de Tailwind v4 est en oklch, légèrement différente).
+ */
+@theme {
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-800: #92400e;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-900: #1e3a8a;
+  --color-cyan-200: #a5f3fc;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
+  --color-cyan-800: #155e75;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-700: #4338ca;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #f97316;
+  --color-purple-400: #c084fc;
+  --color-purple-500: #a855f7;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-rose-600: #e11d48;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-950: #020617;
+  --color-yellow-300: #fde047;
+  --color-yellow-500: #eab308;
+  --color-yellow-600: #ca8a04;
+}
+
+@theme {
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-spin-slow: spin 18s linear infinite;
+  --animate-blink: blink 1s step-end infinite;
+  --animate-highlight: highlight 2s ease-out forwards;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes highlight {
+    0% {
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
+/*
+ * Équivalent exact de l'ancienne option `container` de Tailwind v3 : centré,
+ * marge interne de 1rem et largeur maximale unique de 1400px. (En v3, les
+ * paddings `sm`/`lg` n'étaient jamais appliqués car `container.screens` ne
+ * définissait que `2xl` ; on conserve ce rendu.) Les max-width répétés
+ * neutralisent les paliers par défaut du `container` de Tailwind v4.
+ */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+  max-width: 1400px;
+
+  @media (width >= 40rem) {
+    max-width: 1400px;
+  }
+  @media (width >= 48rem) {
+    max-width: 1400px;
+  }
+  @media (width >= 64rem) {
+    max-width: 1400px;
+  }
+  @media (width >= 80rem) {
+    max-width: 1400px;
+  }
+  @media (width >= 96rem) {
+    max-width: 1400px;
+  }
+}
 
 @layer base {
-  /* Palette Météo CI (valeurs HSL des couleurs d'origine) */
-  :root {
-    --background: 210 40% 98%; /* #f8fafc */
-    --foreground: 222 47% 11%; /* #0f172a */
-    --muted: 210 40% 96%; /* #f1f5f9 */
-    --muted-foreground: 215 19% 35%; /* #475569 */
-    --faint: 215 20% 65%; /* #94a3b8 */
-    --surface: 214 32% 91%; /* #e2e8f0 */
-    --card: 0 0% 100%; /* #ffffff */
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 226 71% 40%; /* #1e40af */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 192 91% 36%; /* #0891b2 */
-    --secondary-foreground: 0 0% 100%;
-    --accent: 38 92% 50%; /* #f59e0b */
-    --accent-foreground: 222 47% 11%;
-    --success: 160 84% 39%; /* #10b981 */
-    --success-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%; /* #ef4444 */
-    --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%; /* #e2e8f0 */
-    --input: 214 32% 91%;
-    --ring: 226 71% 40%;
-    --radius: 0.875rem;
+  /*
+   * Tailwind v4 utilise `currentColor` comme couleur de bordure par défaut ;
+   * on conserve le comportement v3 (couleur de thème `border`).
+   */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
   }
 
-  .dark {
-    --background: 224 50% 9%; /* #0b1121 */
-    --foreground: 210 40% 96%; /* #f1f5f9 */
-    --muted: 227 35% 16%; /* #1a2036 */
-    --muted-foreground: 215 20% 65%; /* #94a3b8 */
-    --faint: 215 16% 47%; /* #64748b */
-    --surface: 227 33% 23%; /* #272f4d */
-    --card: 226 37% 13%; /* #151b2e */
-    --card-foreground: 210 40% 96%;
-    --popover: 226 37% 13%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 217 91% 60%; /* #3b82f6 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 192 91% 36%;
-    --secondary-foreground: 0 0% 100%;
-    --accent: 38 92% 50%;
-    --accent-foreground: 222 47% 11%;
-    --success: 160 84% 39%;
-    --success-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 218 23% 23%; /* #2d3748 */
-    --input: 218 23% 23%;
-    --ring: 217 91% 60%;
+  /* Tailwind v4 : les boutons utilisent `cursor: default` ; on garde le pointeur (v3). */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 
-  * {
-    @apply border-border;
+  /* Placeholder : même rendu qu'en v3 (gris neutre). */
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af;
   }
 
   html {
@@ -93,6 +267,7 @@
     }
   }
 
+  /* biome-ignore-start lint/complexity/noImportantStyles: la préférence « réduire les animations » doit l'emporter sur toutes les animations et transitions des utilitaires. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -104,4 +279,5 @@
       scroll-behavior: auto !important;
     }
   }
+  /* biome-ignore-end lint/complexity/noImportantStyles: fin du bloc reduced-motion */
 }

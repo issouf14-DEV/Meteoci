@@ -4,9 +4,9 @@ import {
   getWeatherAt,
   hasApiKey,
   isAbortError,
+  type LocationQuery,
   toUserMessage,
   WeatherError,
-  type LocationQuery,
   type WeatherErrorCode,
   type WeatherSnapshot,
 } from "@/lib/weather";
@@ -35,6 +35,7 @@ export function useWeather(query: LocationQuery, target: Date | null, refreshKey
   const queryKey = queryKeyOf(query);
   const targetMs = target?.getTime() ?? null;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `queryKey` (clé stable de `queryRef.current`), `refreshKey` et `attempt` sont des déclencheurs volontaires de rechargement.
   useEffect(() => {
     if (!hasApiKey) return;
 

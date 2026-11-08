@@ -8,7 +8,7 @@ import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
 import { Toaster } from "@/components/ui/sonner";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { CITIES, createCityId, normalizeName, type City } from "@/lib/cities";
+import { CITIES, type City, createCityId, normalizeName } from "@/lib/cities";
 import { SITE } from "@/lib/site";
 import { validateCityName } from "@/lib/validation";
 import {
@@ -36,7 +36,7 @@ export default function App() {
 
   const allCities = useMemo<City[]>(() => [...dynamicCities, ...CITIES], [dynamicCities]);
   const filteredCity = useMemo(
-    () => (filterId ? allCities.find((c) => c.id === filterId) ?? null : null),
+    () => (filterId ? (allCities.find((c) => c.id === filterId) ?? null) : null),
     [allCities, filterId],
   );
 

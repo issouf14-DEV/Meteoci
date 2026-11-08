@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { Toaster as Sonner } from "sonner";
 
 import { useTheme } from "@/components/theme-provider";

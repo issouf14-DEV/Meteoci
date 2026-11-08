@@ -1,17 +1,18 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
 
+import { type Theme, themeSchema } from "@/lib/schemas";
 import { safeGetItem, safeSetItem } from "@/lib/storage";
 
-export type Theme = "light" | "dark";
+export type { Theme };
 
 /** Même clé que l'ancienne version, pour conserver la préférence. */
 export const THEME_STORAGE_KEY = "meteoTheme";
@@ -27,12 +28,14 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readStoredTheme(): Theme | null {
-  const value = safeGetItem(THEME_STORAGE_KEY);
-  return value === "light" || value === "dark" ? value : null;
+  const result = themeSchema.safeParse(safeGetItem(THEME_STORAGE_KEY));
+  return result.success ? result.data : null;
 }
 
 function systemTheme(): Theme {
-  return typeof window !== "undefined" && window.matchMedia?.(DARK_QUERY).matches ? "dark" : "light";
+  return typeof window !== "undefined" && window.matchMedia?.(DARK_QUERY).matches
+    ? "dark"
+    : "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

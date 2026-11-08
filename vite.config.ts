@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig, type Plugin } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { defineConfig, type Plugin } from "vite";
 
 /**
  * Content-Security-Policy injectée uniquement dans le build de production.
@@ -42,7 +43,7 @@ function productionCsp(): Plugin {
 export default defineConfig({
   // Chemins relatifs : fonctionne sur GitHub Pages (site de projet).
   base: "./",
-  plugins: [react(), productionCsp()],
+  plugins: [react(), tailwindcss(), productionCsp()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

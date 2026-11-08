@@ -6,25 +6,28 @@ Application web moderne et responsive pour consulter la météo actuelle et les 
 
 ## ✨ Fonctionnalités
 
-| Fonctionnalité | Description |
-|----------------|-------------|
-| 📍 **15 villes** | Météo des principales villes ivoiriennes (Abidjan, Bouaké, Korhogo, Yamoussoukro...) |
-| ⏰ **Date / heure** | Prévision la plus proche de la date et de l'heure choisies (5 jours max) |
-| 🌡️ **Détails** | Température, max/min, ressenti, humidité, vent, probabilité de pluie |
-| 🔍 **Recherche** | Autocomplétion navigable au clavier ; une ville inconnue est ajoutée dynamiquement (et peut être retirée) |
-| 🌙 **Mode sombre** | Thème clair/sombre mémorisé, avec détection de la préférence système |
-| 🔄 **Actualisation** | Automatique toutes les 10 minutes, ou manuelle |
-| 📱 **Responsive** | Mobile, tablette et desktop ; animations fluides respectant `prefers-reduced-motion` |
-| 🔔 **Notifications** | Toasts accessibles pour le retour utilisateur |
+| Fonctionnalité       | Description                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| 📍 **15 villes**     | Météo des principales villes ivoiriennes (Abidjan, Bouaké, Korhogo, Yamoussoukro...)                      |
+| ⏰ **Date / heure**  | Prévision la plus proche de la date et de l'heure choisies (5 jours max)                                  |
+| 🌡️ **Détails**       | Température, max/min, ressenti, humidité, vent, probabilité de pluie                                      |
+| 🔍 **Recherche**     | Autocomplétion navigable au clavier ; une ville inconnue est ajoutée dynamiquement (et peut être retirée) |
+| 🌙 **Mode sombre**   | Thème clair/sombre mémorisé, avec détection de la préférence système                                      |
+| 🔄 **Actualisation** | Automatique toutes les 10 minutes, ou manuelle                                                            |
+| 📱 **Responsive**    | Mobile, tablette et desktop ; animations fluides respectant `prefers-reduced-motion`                      |
+| 🔔 **Notifications** | Toasts accessibles pour le retour utilisateur                                                             |
 
 ---
 
 ## 🔧 Technologies
 
-- [React 18](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vitejs.dev/)
-- [Tailwind CSS 3](https://tailwindcss.com/) + `tailwindcss-animate`
+- [React 19](https://react.dev/) + [TypeScript 5](https://www.typescriptlang.org/) (mode strict)
+- [Vite 8](https://vite.dev/) (build et serveur de développement)
+- [Tailwind CSS 4](https://tailwindcss.com/) (configuration CSS-first via `@tailwindcss/vite`) + `tw-animate-css`
 - Composants [shadcn/ui](https://ui.shadcn.com/) (Radix UI) et notifications [Sonner](https://sonner.emilkowal.ski/)
 - Icônes [lucide-react](https://lucide.dev/)
+- [Zod 4](https://zod.dev/) : validation à l'exécution des réponses de l'API, de la clé API, de la recherche et des données `localStorage`
+- [Biome](https://biomejs.dev/) : linter + formateur (remplace ESLint/Prettier)
 - Données : [OpenWeatherMap](https://openweathermap.org/api)
 
 ---
@@ -40,13 +43,13 @@ Application web moderne et responsive pour consulter la météo actuelle et les 
 ├── src/
 │   ├── main.tsx             # Montage React (+ purge des anciennes données locales)
 │   ├── App.tsx              # Orchestration : recherche, filtres, rafraîchissement
-│   ├── index.css            # Variables de thème (palette Météo CI)
+│   ├── index.css            # Tailwind v4 (CSS-first) : thème, palette Météo CI, animations
 │   ├── components/          # Header, Hero, CityCard, Footer...
 │   │   └── ui/              # Composants shadcn/ui
 │   ├── hooks/               # useWeather, useReducedMotion
-│   └── lib/                 # API météo, villes, validation, utilitaires
-├── vite.config.ts           # Alias @, base relative, CSP de production
-└── tailwind.config.ts
+│   └── lib/                 # API météo, schémas Zod, env, villes, validation, utilitaires
+├── biome.json               # Configuration Biome (lint + formatage)
+└── vite.config.ts           # Alias @, Tailwind, base relative, CSP de production
 ```
 
 ---
@@ -54,10 +57,12 @@ Application web moderne et responsive pour consulter la météo actuelle et les 
 ## 🚀 Installation
 
 ### Prérequis
-- Node.js 18+ (22 recommandé) et npm
+
+- Node.js 20.19+ (22 recommandé) et npm
 - Une clé API gratuite [OpenWeatherMap](https://home.openweathermap.org/api_keys)
 
 ### Lancement en local
+
 ```bash
 git clone https://github.com/issouf14-DEV/meteo-ci.git
 cd meteo-ci
@@ -68,14 +73,19 @@ cp .env.example .env.local
 # puis éditer .env.local : VITE_OWM_API_KEY=votre_cle
 
 npm run dev        # serveur de développement
-npm run build      # build de production dans dist/
+npm run build      # vérification des types + build de production dans dist/
 npm run preview    # prévisualiser le build
+npm run typecheck  # vérification des types TypeScript
+npm run lint       # Biome : lint + formatage + imports (sans modifier)
+npm run format     # Biome : formater les fichiers
+npm run check      # Biome : corriger automatiquement (lint, formatage, imports)
 ```
 
 Sans clé, l'application s'affiche quand même avec un bandeau explicatif.
 
 ### Déploiement (GitHub Pages)
-Le workflow `.github/workflows/static.yml` installe les dépendances, construit le site et publie uniquement `dist/`.
+
+Le workflow `.github/workflows/static.yml` installe les dépendances, lance `npm run lint` et `npm run typecheck`, construit le site et publie uniquement `dist/`.
 
 1. Dans le dépôt GitHub : **Settings → Secrets and variables → Actions → New repository secret**
 2. Nom : `VITE_OWM_API_KEY`, valeur : votre clé OpenWeatherMap
@@ -87,7 +97,9 @@ Le workflow `.github/workflows/static.yml` installe les dépendances, construit 
 
 - Aucun `innerHTML` / `dangerouslySetInnerHTML` : tout le contenu est rendu par React (échappement automatique).
 - Content-Security-Policy stricte injectée dans le build de production (`script-src 'self'`, aucune ressource CDN de script).
-- Saisie de recherche validée (lettres, espaces, tirets, apostrophes ; 60 caractères max).
+- Saisie de recherche validée par un schéma Zod (lettres, espaces, tirets, apostrophes ; 60 caractères max).
+- Chaque réponse de l'API OpenWeatherMap est validée par un schéma Zod (`safeParse`) avant utilisation ; la clé API (`VITE_OWM_API_KEY`) et le thème stocké dans `localStorage` sont également validés.
+- Biome interdit `dangerouslySetInnerHTML` et `any` (règles en erreur, vérifiées en CI).
 - Plus aucun système de comptes : les anciennes données stockées dans `localStorage` (utilisateurs, mots de passe, newsletter) sont supprimées automatiquement au chargement.
 
 > ⚠️ **Clé API visible côté client.** Toute variable `VITE_*` est intégrée au bundle JavaScript public : la clé reste lisible dans le navigateur. C'est inévitable sans un proxy côté serveur. Limitez son usage (quotas) dans votre compte OpenWeatherMap.
@@ -98,12 +110,12 @@ Le workflow `.github/workflows/static.yml` installe les dépendances, construit 
 
 ## ⌨️ Raccourcis clavier
 
-| Raccourci | Action |
-|-----------|--------|
-| `Ctrl + K` / `⌘ + K` | Rechercher une ville |
-| `↑` / `↓`, `Entrée` | Naviguer et choisir une suggestion |
-| `Échap` | Fermer les suggestions / effacer la recherche |
-| `Ctrl + Maj + R` | Actualiser les données météo |
+| Raccourci            | Action                                        |
+| -------------------- | --------------------------------------------- |
+| `Ctrl + K` / `⌘ + K` | Rechercher une ville                          |
+| `↑` / `↓`, `Entrée`  | Naviguer et choisir une suggestion            |
+| `Échap`              | Fermer les suggestions / effacer la recherche |
+| `Ctrl + Maj + R`     | Actualiser les données météo                  |
 
 ---
 

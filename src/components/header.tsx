@@ -33,10 +33,10 @@ export function Header({
       <div className="container flex flex-wrap items-center gap-x-4 gap-y-3 py-3 md:h-16 md:flex-nowrap md:py-0">
         <a
           href="#accueil"
-          className="group flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+          className="group flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
           aria-label="Météo CI, retour en haut de page"
         >
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-secondary text-white shadow-md shadow-primary/20 transition-transform duration-300 ease-out group-hover:rotate-[-6deg] group-hover:scale-105">
+          <span className="grid size-9 place-items-center rounded-xl bg-linear-to-br/srgb from-primary to-secondary text-white shadow-md shadow-primary/20 transition-transform duration-300 ease-out group-hover:rotate-[-6deg] group-hover:scale-105">
             <CloudSun className="size-5" aria-hidden="true" />
           </span>
           <span className="font-heading text-xl font-bold tracking-tight">
