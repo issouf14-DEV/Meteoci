@@ -55,13 +55,13 @@ export function RotatingTitle() {
   }, [reduced, deleting, length, word]);
 
   return (
-    <h1 className="flex min-h-[2.5em] items-center justify-center font-heading text-4xl font-bold leading-tight tracking-tight sm:min-h-[1.3em] sm:leading-none sm:text-5xl lg:text-6xl">
+    <h1 className="flex min-h-[2.5em] items-center justify-center font-heading text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:min-h-[1.3em] lg:text-6xl lg:leading-none">
       <span className="sr-only">Météo CI — la météo de Côte d'Ivoire</span>
       {reduced ? (
         <span
           key={index}
           aria-hidden="true"
-          className="animate-in fade-in-0 animation-duration-600"
+          className="animate-in fade-in-0 animation-duration-300 ease-out"
         >
           {word}
         </span>

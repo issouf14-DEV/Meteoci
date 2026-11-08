@@ -1,12 +1,13 @@
-import { type LucideIcon, Mail, MessageCircle } from "lucide-react";
+import { type LucideIcon, MessageCircle } from "lucide-react";
 
 import { Facebook, Github, Instagram, Twitter, Youtube } from "@/lib/brand-icons";
 
 export const SITE = {
   name: "Météo CI",
   author: "FOFANA ISSOUF",
-  email: "151082137+issouf14-DEV@users.noreply.github.com",
-  repository: "https://github.com/issouf14-DEV/meteo-ci",
+  /** Contact public : profil GitHub (aucune adresse e-mail personnelle exposée). */
+  profile: "https://github.com/issouf14-DEV",
+  repository: "https://github.com/issouf14-DEV/Meteoci",
   /** Rafraîchissement automatique des données. */
   refreshIntervalMs: 10 * 60 * 1000,
 } as const;
@@ -28,7 +29,6 @@ const SOCIAL_CANDIDATES: SocialLink[] = [
   { label: "Instagram", href: "", Icon: Instagram },
   { label: "YouTube", href: "", Icon: Youtube },
   { label: "WhatsApp", href: "", Icon: MessageCircle },
-  { label: "E-mail", href: `mailto:${SITE.email}`, Icon: Mail },
 ];
 
 export const SOCIAL_LINKS = SOCIAL_CANDIDATES.filter((link) => link.href.length > 0);

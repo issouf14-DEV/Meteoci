@@ -1,6 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+// Polices auto-hébergées (pas de CDN tiers) : familles "Inter Variable" et "Outfit Variable".
+import "@fontsource-variable/inter";
+import "@fontsource-variable/outfit";
+
 import App from "@/App";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";

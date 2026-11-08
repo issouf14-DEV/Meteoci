@@ -8,33 +8,52 @@ import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
 import { Toaster } from "@/components/ui/sonner";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { CITIES, type City, createCityId, normalizeName } from "@/lib/cities";
+import { CITIES, type City, createCityId, normalizeName, owmIdOf } from "@/lib/cities";
+import { CI_UTC_OFFSET_SEC } from "@/lib/date";
 import { SITE } from "@/lib/site";
-import { validateCityName } from "@/lib/validation";
+import { MAX_DYNAMIC_CITIES, validateCityName } from "@/lib/validation";
 import {
-  clearWeatherCache,
   hasApiKey,
+  invalidateWeatherCache,
   isAbortError,
   lookupCity,
+  rateLimitRemainingMs,
   toUserMessage,
 } from "@/lib/weather";
 
 const HIGHLIGHT_MS = 2000;
+/** Délai minimal entre deux actualisations manuelles (quota de l'API). */
+const MANUAL_REFRESH_MIN_MS = 60_000;
+
+/** Vrai si la touche est tapée dans un champ de saisie (pas de raccourci). */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  );
+}
+
+const toSeconds = (ms: number) => Math.max(1, Math.ceil(ms / 1000));
 
 export default function App() {
   const [dynamicCities, setDynamicCities] = useState<City[]>([]);
   const [filterId, setFilterId] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
+  /** Dernier rafraîchissement : déclencheur des requêtes et « maintenant » des cartes. */
+  const [refreshedAt, setRefreshedAt] = useState(() => Date.now());
   const reducedMotion = useReducedMotion();
 
   const highlightTimer = useRef<number | undefined>(undefined);
-  const refreshTimer = useRef<number | undefined>(undefined);
-  const lastRefresh = useRef(Date.now());
+  const lastRefresh = useRef(refreshedAt);
   const searchController = useRef<AbortController | null>(null);
 
   const allCities = useMemo<City[]>(() => [...dynamicCities, ...CITIES], [dynamicCities]);
+  const allCitiesRef = useRef(allCities);
+  allCitiesRef.current = allCities;
+
   const filteredCity = useMemo(
     () => (filterId ? (allCities.find((c) => c.id === filterId) ?? null) : null),
     [allCities, filterId],
@@ -43,12 +62,26 @@ export default function App() {
   /* ------------------------------ Rafraîchissement ------------------------------ */
 
   const refresh = useCallback((manual: boolean) => {
-    clearWeatherCache();
-    lastRefresh.current = Date.now();
-    setRefreshKey((k) => k + 1);
-    setRefreshing(true);
-    window.clearTimeout(refreshTimer.current);
-    refreshTimer.current = window.setTimeout(() => setRefreshing(false), 1200);
+    const now = Date.now();
+    const rateLimited = rateLimitRemainingMs();
+    if (rateLimited > 0) {
+      if (manual) {
+        toast.warning("Trop de requêtes envoyées au service météo.", {
+          description: `Réessayez dans ${toSeconds(rateLimited)} s.`,
+        });
+      }
+      return;
+    }
+    const sinceLast = now - lastRefresh.current;
+    if (manual && sinceLast < MANUAL_REFRESH_MIN_MS) {
+      toast.info("Les données sont déjà à jour.", {
+        description: `Nouvelle actualisation possible dans ${toSeconds(MANUAL_REFRESH_MIN_MS - sinceLast)} s.`,
+      });
+      return;
+    }
+    invalidateWeatherCache();
+    lastRefresh.current = now;
+    setRefreshedAt(now);
     if (manual) toast.info("Mise à jour des données météo...");
   }, []);
 
@@ -67,13 +100,14 @@ export default function App() {
     };
   }, [refresh]);
 
-  // Ctrl/Cmd + Maj + R : actualiser les données.
+  // Touche « R » (hors champ de saisie, sans modificateur) : actualiser les données.
+  // Ctrl+Maj+R reste le rechargement forcé du navigateur.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "r") {
-        event.preventDefault();
-        refresh(true);
-      }
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key.toLowerCase() !== "r" || isEditableTarget(event.target)) return;
+      event.preventDefault();
+      refresh(true);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -82,7 +116,6 @@ export default function App() {
   useEffect(
     () => () => {
       window.clearTimeout(highlightTimer.current);
-      window.clearTimeout(refreshTimer.current);
       searchController.current?.abort();
     },
     [],
@@ -116,9 +149,25 @@ export default function App() {
 
   const showAll = useCallback(() => setFilterId(null), []);
 
+  // Référence stable (villes lues via une ref) : n'invalide pas le memo des cartes.
   const removeCity = useCallback((id: string) => {
-    setDynamicCities((cities) => cities.filter((c) => c.id !== id));
+    const cities = allCitiesRef.current;
+    const index = cities.findIndex((c) => c.id === id);
+    if (index === -1) return;
+    const removed = cities[index];
+    const next = cities[index + 1] ?? cities[index - 1];
+
+    setDynamicCities((list) => list.filter((c) => c.id !== id));
     setFilterId((current) => (current === id ? null : current));
+    toast.success(`« ${removed.name} » a été retirée.`);
+
+    // Le bouton supprimé emportait le focus : le placer sur la carte suivante.
+    requestAnimationFrame(() => {
+      const target =
+        (next && document.getElementById(`ville-${next.id}`)) ||
+        document.getElementById("villes-titre");
+      target?.focus({ preventScroll: true });
+    });
   }, []);
 
   /* --------------------------------- Recherche ---------------------------------- */
@@ -143,6 +192,13 @@ export default function App() {
         return false;
       }
 
+      if (dynamicCities.length >= MAX_DYNAMIC_CITIES) {
+        toast.error(`Limite de ${MAX_DYNAMIC_CITIES} villes ajoutées atteinte.`, {
+          description: "Retirez une ville ajoutée pour en rechercher une autre.",
+        });
+        return false;
+      }
+
       searchController.current?.abort();
       const controller = new AbortController();
       searchController.current = controller;
@@ -150,7 +206,7 @@ export default function App() {
       try {
         const found = await lookupCity(name, controller.signal);
         const existing = allCities.find(
-          (c) => c.owmId === found.id || normalizeName(c.name) === normalizeName(found.name),
+          (c) => owmIdOf(c) === found.id || normalizeName(c.name) === normalizeName(found.name),
         );
         if (existing) {
           selectCity(existing.id);
@@ -163,10 +219,12 @@ export default function App() {
           region: found.country === "CI" ? "Côte d'Ivoire" : "International",
           query: { id: found.id },
           dynamic: true,
-          owmId: found.id,
           country: found.country,
+          utcOffsetSec: found.utcOffsetSec ?? CI_UTC_OFFSET_SEC,
         };
-        setDynamicCities((cities) => [city, ...cities]);
+        setDynamicCities((cities) =>
+          cities.length >= MAX_DYNAMIC_CITIES ? cities : [city, ...cities],
+        );
         setFilterId(null);
         revealCity(city.id);
         toast.success(`« ${city.name} » a été ajoutée.`);
@@ -177,11 +235,13 @@ export default function App() {
         return false;
       }
     },
-    [allCities, revealCity, selectCity],
+    [allCities, dynamicCities.length, revealCity, selectCity],
   );
 
+  const onManualRefresh = useCallback(() => refresh(true), [refresh]);
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-svh flex-col">
       <a
         href="#villes"
         className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -191,8 +251,7 @@ export default function App() {
 
       <Header
         cities={allCities}
-        refreshing={refreshing}
-        onRefresh={() => refresh(true)}
+        onRefresh={onManualRefresh}
         onSelectCity={selectCity}
         onSearch={searchCity}
         onClearSearch={showAll}
@@ -204,8 +263,7 @@ export default function App() {
         <CityGrid
           cities={allCities}
           filteredCity={filteredCity}
-          totalCount={allCities.length}
-          refreshKey={refreshKey}
+          refreshedAt={refreshedAt}
           highlightId={highlightId}
           onShowAll={showAll}
           onRemove={removeCity}

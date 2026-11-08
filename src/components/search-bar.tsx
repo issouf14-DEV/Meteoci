@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { type City, normalizeName } from "@/lib/cities";
 import { cn } from "@/lib/utils";
 import { CITY_NAME_MAX_LENGTH } from "@/lib/validation";
+import { hasApiKey } from "@/lib/weather";
 
 type Option = { kind: "city"; city: City } | { kind: "search"; label: string };
 
@@ -19,6 +20,14 @@ interface SearchBarProps {
 }
 
 const MAX_SUGGESTIONS = 7;
+
+/** macOS / iOS : afficher « ⌘ K » au lieu de « Ctrl K ». */
+const IS_APPLE = (() => {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  const platform = nav.userAgentData?.platform || nav.platform || nav.userAgent;
+  return /mac|iphone|ipad|ipod/i.test(platform);
+})();
 
 export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }: SearchBarProps) {
   const [value, setValue] = useState("");
@@ -42,13 +51,22 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
       .slice(0, MAX_SUGGESTIONS);
     const result: Option[] = matches.map((city) => ({ kind: "city", city }));
     const exact = matches.some((city) => normalizeName(city.name) === needle);
-    if (!exact && value.trim().length >= 2) {
+    // Sans clé API, la recherche en ligne est impossible : pas d'option « Rechercher ».
+    if (hasApiKey && !exact && value.trim().length >= 2) {
       result.push({ kind: "search", label: value.trim().slice(0, CITY_NAME_MAX_LENGTH) });
     }
     return result;
   }, [cities, value]);
 
   const expanded = open && options.length > 0;
+
+  // Garde l'option active visible dans la liste (limitée en hauteur).
+  useEffect(() => {
+    if (!expanded || activeIndex < 0) return;
+    document
+      .getElementById(`${listboxId}-option-${activeIndex}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [expanded, activeIndex, listboxId]);
 
   // Ctrl/Cmd + K : focus sur la recherche.
   useEffect(() => {
@@ -119,6 +137,13 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
         setOpen(true);
         setActiveIndex((i) => (i <= 0 ? options.length - 1 : i - 1));
         break;
+      case "Home":
+      case "End":
+        // Dans la liste ouverte, première / dernière option ; sinon, curseur du champ.
+        if (!expanded) return;
+        event.preventDefault();
+        setActiveIndex(event.key === "Home" ? 0 : options.length - 1);
+        break;
       case "Enter":
         event.preventDefault();
         if (expanded && activeIndex >= 0 && options[activeIndex]) {
@@ -178,6 +203,7 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
           enterKeyHint="search"
           maxLength={CITY_NAME_MAX_LENGTH}
           placeholder="Rechercher une ville..."
+          aria-keyshortcuts={IS_APPLE ? "Meta+K" : "Control+K"}
           value={value}
           readOnly={busy}
           aria-busy={busy}
@@ -194,7 +220,7 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
           className="h-11 rounded-full border-border/80 bg-card/70 pl-10 pr-24 shadow-xs"
         />
 
-        <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
+        <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-2">
           {value && !busy ? (
             <Button
               variant="ghost"
@@ -208,11 +234,11 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
                 inputRef.current?.focus();
               }}
             >
-              <X />
+              <X aria-hidden="true" />
             </Button>
           ) : (
             <kbd className="pointer-events-none mr-1 hidden select-none items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground md:inline-flex">
-              Ctrl K
+              {IS_APPLE ? "⌘ K" : "Ctrl K"}
             </kbd>
           )}
           <Button
@@ -222,7 +248,11 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
             aria-label="Lancer la recherche"
             disabled={busy}
           >
-            {busy ? <Loader2 className="animate-spin" /> : <Search />}
+            {busy ? (
+              <Loader2 aria-hidden="true" className="animate-spin" />
+            ) : (
+              <Search aria-hidden="true" />
+            )}
           </Button>
         </div>
 

@@ -1,4 +1,4 @@
-# Lint (Biome), vérification des types, build (Vite) puis déploiement sur GitHub Pages
+# Lint (Biome), vérification des types, audit, build (Vite) puis déploiement sur GitHub Pages
 name: Deploy to GitHub Pages
 
 on:
@@ -20,19 +20,24 @@ jobs:
     permissions:
       contents: read
     steps:
+      # Actions épinglées par SHA de commit complet (mises à jour par Dependabot).
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
 
+      # --ignore-scripts : aucun script d'installation (postinstall...) des dépendances n'est exécuté.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Audit des dépendances
+        run: npm audit --audit-level=high
 
       - name: Lint (Biome)
         run: npm run lint
@@ -46,10 +51,10 @@ jobs:
           VITE_OWM_API_KEY: ${{ secrets.VITE_OWM_API_KEY }}
 
       - name: Setup Pages
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ./dist
 
@@ -65,4 +70,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

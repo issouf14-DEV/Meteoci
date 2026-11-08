@@ -4,32 +4,26 @@ import { SearchBar } from "@/components/search-bar";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useWeatherActivity } from "@/hooks/use-weather-activity";
 import type { City } from "@/lib/cities";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   cities: ReadonlyArray<City>;
-  refreshing: boolean;
   onRefresh: () => void;
   onSelectCity: (id: string) => void;
   onSearch: (name: string) => Promise<boolean>;
   onClearSearch: () => void;
 }
 
-export function Header({
-  cities,
-  refreshing,
-  onRefresh,
-  onSelectCity,
-  onSearch,
-  onClearSearch,
-}: HeaderProps) {
+export function Header({ cities, onRefresh, onSelectCity, onSearch, onClearSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
-  const themeLabel = isDark ? "Activer le thème clair" : "Activer le thème sombre";
+  // Indicateur réel : tourne tant que des requêtes météo sont en cours ou en attente.
+  const refreshing = useWeatherActivity() > 0;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95">
       <div className="container flex flex-wrap items-center gap-x-4 gap-y-3 py-3 md:h-16 md:flex-nowrap md:py-0">
         <a
           href="#accueil"
@@ -60,13 +54,14 @@ export function Header({
                 variant="ghost"
                 size="icon"
                 className="rounded-full"
-                aria-label="Actualiser les données météo (Ctrl+Maj+R)"
+                aria-label="Actualiser les données météo (touche R)"
+                aria-keyshortcuts="R"
                 onClick={onRefresh}
               >
                 <RefreshCw className={cn(refreshing && "animate-spin")} aria-hidden="true" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Actualiser (Ctrl+Maj+R)</TooltipContent>
+            <TooltipContent>Actualiser (R)</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -75,7 +70,7 @@ export function Header({
                 variant="ghost"
                 size="icon"
                 className="relative rounded-full"
-                aria-label={themeLabel}
+                aria-label="Thème sombre"
                 aria-pressed={isDark}
                 onClick={toggleTheme}
               >
@@ -89,7 +84,9 @@ export function Header({
                 />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{themeLabel}</TooltipContent>
+            <TooltipContent>
+              {isDark ? "Thème sombre activé" : "Thème sombre désactivé"}
+            </TooltipContent>
           </Tooltip>
         </div>
       </div>

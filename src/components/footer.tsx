@@ -6,7 +6,7 @@ import { SITE, SOCIAL_LINKS } from "@/lib/site";
 const EXTERNAL = { target: "_blank", rel: "noopener noreferrer" } as const;
 
 const linkClass =
-  "inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background";
+  "inline-flex items-center gap-1.5 rounded-sm py-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -36,7 +36,7 @@ export function Footer() {
           >
             Liens utiles
           </h2>
-          <ul className="mt-4 space-y-2.5">
+          <ul className="mt-3 space-y-0.5">
             <li>
               <a href="#accueil" className={linkClass}>
                 Accueil
@@ -77,7 +77,7 @@ export function Footer() {
                     href={href}
                     aria-label={external ? `${label} (nouvel onglet)` : label}
                     title={label}
-                    className="grid size-10 place-items-center rounded-full border bg-background text-muted-foreground transition-[transform,translate,scale,color] duration-200 ease-out hover:-translate-y-0.5 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background active:scale-95"
+                    className="grid size-11 place-items-center rounded-full border bg-background text-muted-foreground transition-[transform,translate,scale,color] duration-200 ease-out hover:-translate-y-0.5 hover:text-primary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background active:scale-95"
                     {...(external ? EXTERNAL : {})}
                   >
                     <Icon aria-hidden="true" className="size-4" />
@@ -99,10 +99,11 @@ export function Footer() {
           Données{" "}
           <a
             href="https://openweathermap.org/"
-            className="underline-offset-4 hover:underline"
+            className="rounded-sm underline underline-offset-4 decoration-muted-foreground/40 hover:decoration-current focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             {...EXTERNAL}
           >
             OpenWeatherMap
+            <span className="sr-only"> (nouvel onglet)</span>
           </a>
         </p>
       </div>

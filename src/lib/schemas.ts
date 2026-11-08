@@ -58,6 +58,7 @@ export type OwmForecastResponse = z.infer<typeof owmForecastResponseSchema>;
 /*                             Recherche de ville                             */
 /* -------------------------------------------------------------------------- */
 
+export const CITY_NAME_MIN_LENGTH = 2;
 export const CITY_NAME_MAX_LENGTH = 60;
 
 /** Lettres (y compris accentuées), espaces, tirets et apostrophes uniquement. */
@@ -70,13 +71,17 @@ export const cityNameSchema = z
     z
       .string()
       .min(1, "Veuillez saisir le nom d'une ville.")
+      .min(
+        CITY_NAME_MIN_LENGTH,
+        `Le nom de la ville doit contenir au moins ${CITY_NAME_MIN_LENGTH} caractères.`,
+      )
       .max(
         CITY_NAME_MAX_LENGTH,
         `Le nom de la ville ne doit pas dépasser ${CITY_NAME_MAX_LENGTH} caractères.`,
       )
       .regex(
         CITY_NAME_PATTERN,
-        "Seuls les lettres, espaces, tirets et apostrophes sont autorisés.",
+        "Seuls les lettres (accents compris), espaces, tirets et apostrophes sont autorisés.",
       ),
   );
 

@@ -4,9 +4,12 @@ import {
   ArrowUp,
   CalendarClock,
   Clock,
+  CloudOff,
   Droplets,
+  Info,
   KeyRound,
   Loader2,
+  type LucideIcon,
   MapPin,
   RotateCcw,
   RotateCw,
@@ -15,11 +18,10 @@ import {
   Wind,
   X,
 } from "lucide-react";
-import { type CSSProperties, memo, useId, useMemo, useState } from "react";
+import { type CSSProperties, memo, useEffect, useId, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,21 +29,30 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useWeather } from "@/hooks/use-weather";
 import type { City } from "@/lib/cities";
 import {
-  addDays,
   combineLocal,
   formatDateTime,
   formatTime,
+  formatUtcOffset,
   toDateInputValue,
   toTimeInputValue,
 } from "@/lib/date";
 import { cn } from "@/lib/utils";
-import type { WeatherSnapshot } from "@/lib/weather";
-import { getWeatherVisual } from "@/lib/weather-icons";
+import {
+  CURRENT_TOLERANCE_MS,
+  FORECAST_HORIZON_MS,
+  hasApiKey,
+  RETRYABLE_CODES,
+  type WeatherErrorCode,
+  type WeatherSnapshot,
+} from "@/lib/weather";
+import { getWeatherVisual, type WeatherVisual } from "@/lib/weather-icons";
 
 interface CityCardProps {
   city: City;
-  index: number;
-  refreshKey: number;
+  /** Rang d'apparition (délai d'animation), stable quand on ajoute une ville. */
+  animationIndex: number;
+  /** Dernier rafraîchissement global (ms) : sert aussi de « maintenant ». */
+  refreshedAt: number;
   highlighted: boolean;
   hidden?: boolean;
   onRemove?: (id: string) => void;
@@ -52,13 +63,40 @@ interface Selection {
   time: string;
 }
 
+const LEAVE_MS = 200;
+
 const round = (n: number) => Math.round(n);
 const capitalize = (s: string) => (s ? s.charAt(0).toLocaleUpperCase("fr-FR") + s.slice(1) : s);
 
+/**
+ * Ramène la date choisie dans la plage disponible au lieu de produire une
+ * erreur : heure passée → conditions actuelles ; au-delà de l'horizon des
+ * prévisions → dernière prévision disponible.
+ */
+function resolveTarget(
+  picked: number | null,
+  now: number,
+  offsetSec: number,
+): { targetMs: number | null; notice: string | null } {
+  if (picked === null) return { targetMs: null, notice: null };
+  if (picked < now - CURRENT_TOLERANCE_MS) {
+    return { targetMs: null, notice: "Heure passée : conditions actuelles affichées." };
+  }
+  if (picked <= now + CURRENT_TOLERANCE_MS) return { targetMs: null, notice: null };
+  const horizon = now + FORECAST_HORIZON_MS;
+  if (picked > horizon) {
+    return {
+      targetMs: horizon,
+      notice: `Prévisions disponibles jusqu'au ${formatDateTime(horizon, offsetSec)}.`,
+    };
+  }
+  return { targetMs: picked, notice: null };
+}
+
 function CityCardImpl({
   city,
-  index,
-  refreshKey,
+  animationIndex,
+  refreshedAt,
   highlighted,
   hidden = false,
   onRemove,
@@ -66,28 +104,33 @@ function CityCardImpl({
   const uid = useId();
   const [selection, setSelection] = useState<Selection | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef<number | undefined>(undefined);
 
-  // Recalculé à chaque rafraîchissement pour garder "maintenant" à jour.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `refreshKey` sert uniquement de déclencheur pour recalculer la date courante.
-  const now = useMemo(() => new Date(), [refreshKey]);
-  const today = toDateInputValue(now);
-  const maxDate = toDateInputValue(addDays(now, 5));
+  useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
+
+  const offset = city.utcOffsetSec;
+  const now = refreshedAt;
+  const horizon = now + FORECAST_HORIZON_MS;
+  const today = toDateInputValue(now, offset);
+  const maxDate = toDateInputValue(horizon, offset);
   const dateValue = selection?.date ?? today;
-  const timeValue = selection?.time ?? toTimeInputValue(now);
+  const timeValue = selection?.time ?? toTimeInputValue(now, offset);
+  const tzLabel = formatUtcOffset(offset);
+  const international = city.dynamic && city.country !== undefined && city.country !== "CI";
 
-  const target = useMemo(
-    () => (selection ? combineLocal(selection.date, selection.time) : null),
-    [selection],
-  );
+  const picked = selection ? combineLocal(selection.date, selection.time, offset) : null;
+  const { targetMs, notice } = resolveTarget(picked, now, offset);
 
-  const weather = useWeather(city.query, target, refreshKey);
+  const weather = useWeather(city.query, targetMs, refreshedAt, !hidden);
   const visual = weather.data
     ? getWeatherVisual(weather.data.conditionId, weather.data.main, weather.data.icon)
     : null;
+  const stale = weather.status === "error" && weather.data !== null;
 
   const updateSelection = (patch: Partial<Selection>) => {
     const next = { date: dateValue, time: timeValue, ...patch };
-    if (!next.date) {
+    // Champ vidé : retour à « maintenant » (pas d'heure implicite).
+    if (!next.date || !next.time) {
       setSelection(null);
       return;
     }
@@ -95,22 +138,27 @@ function CityCardImpl({
   };
 
   const handleRemove = () => {
-    if (!onRemove) return;
+    if (!onRemove || leaving) return;
     setLeaving(true);
-    window.setTimeout(() => onRemove(city.id), 200);
+    leaveTimer.current = window.setTimeout(() => onRemove(city.id), LEAVE_MS);
   };
 
-  const style: CSSProperties = leaving ? {} : { animationDelay: `${Math.min(index, 12) * 45}ms` };
+  const style: CSSProperties = leaving
+    ? {}
+    : { animationDelay: `${Math.min(animationIndex, 12) * 45}ms` };
 
   return (
-    <Card
+    <article
       id={`ville-${city.id}`}
+      data-slot="card"
+      tabIndex={-1}
       aria-labelledby={`${uid}-title`}
       aria-busy={weather.status === "loading"}
       style={style}
       className={cn(
-        "group relative flex scroll-mt-28 flex-col overflow-hidden border-border/70 transition-transform duration-300 ease-out hover:-translate-y-1",
-        "animate-in fade-in-0 slide-in-from-bottom-4 fill-mode-backwards animation-duration-500",
+        "group relative flex scroll-mt-28 flex-col overflow-hidden rounded-lg border border-border/70 bg-card text-card-foreground shadow-xs transition-transform duration-300 ease-out hover:-translate-y-1",
+        "focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
+        "animate-in fade-in-0 slide-in-from-bottom-4 fill-mode-backwards animation-duration-300 ease-out",
         hidden && "hidden",
         leaving &&
           "pointer-events-none animate-out fade-out-0 zoom-out-95 fill-mode-forwards [--tw-animation-delay:0ms] animation-duration-200",
@@ -132,8 +180,8 @@ function CityCardImpl({
       <span
         aria-hidden="true"
         className={cn(
-          "h-1 w-full bg-linear-to-r/srgb transition-opacity duration-500",
-          visual ? visual.bar : "from-muted to-muted",
+          "h-1 w-full bg-linear-to-r/srgb",
+          visual && !stale ? visual.bar : "from-muted to-muted",
         )}
       />
 
@@ -151,8 +199,10 @@ function CityCardImpl({
                 <MapPin aria-hidden="true" />
                 {city.region}
               </Badge>
-              {city.dynamic && city.country && city.country !== "CI" && (
-                <Badge variant="muted">{city.country}</Badge>
+              {international && (
+                <Badge variant="muted">
+                  {city.country} · {tzLabel}
+                </Badge>
               )}
             </div>
           </div>
@@ -171,6 +221,7 @@ function CityCardImpl({
                     size="icon-sm"
                     className="rounded-full text-muted-foreground hover:text-destructive"
                     aria-label={`Retirer ${city.name}`}
+                    disabled={leaving}
                     onClick={handleRemove}
                   >
                     <X aria-hidden="true" />
@@ -182,8 +233,10 @@ function CityCardImpl({
           </div>
         </div>
 
-        <fieldset className="grid grid-cols-[1fr_auto] gap-2">
-          <legend className="sr-only">Date et heure de la prévision pour {city.name}</legend>
+        <fieldset className="grid grid-cols-[1fr_auto] gap-2" disabled={!hasApiKey}>
+          <legend className="sr-only">
+            Date et heure de la prévision pour {city.name} (heure locale, {tzLabel})
+          </legend>
           <label htmlFor={`${uid}-date`} className="sr-only">
             Date pour {city.name}
           </label>
@@ -193,30 +246,43 @@ function CityCardImpl({
             value={dateValue}
             min={today}
             max={maxDate}
+            title={`Date locale (${tzLabel})`}
             onChange={(event) => updateSelection({ date: event.target.value })}
-            className="h-9 bg-muted/50 px-2.5 [color-scheme:light] dark:[color-scheme:dark]"
+            className="h-11 bg-muted/50 px-2.5 [color-scheme:light] pointer-fine:h-9 dark:[color-scheme:dark]"
           />
           <label htmlFor={`${uid}-time`} className="sr-only">
-            Heure pour {city.name}
+            Heure pour {city.name} (heure locale, {tzLabel})
           </label>
           <Input
             id={`${uid}-time`}
             type="time"
             value={timeValue}
+            min={dateValue === today ? toTimeInputValue(now, offset) : undefined}
+            max={dateValue === maxDate ? toTimeInputValue(horizon, offset) : undefined}
+            title={`Heure locale (${tzLabel})`}
             onChange={(event) => updateSelection({ time: event.target.value })}
-            className="h-9 w-[6.5rem] bg-muted/50 px-2.5 [color-scheme:light] dark:[color-scheme:dark]"
+            className="h-11 w-[6.5rem] bg-muted/50 px-2.5 [color-scheme:light] pointer-fine:h-9 dark:[color-scheme:dark]"
           />
+          {notice && (
+            <p className="col-span-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+              {notice}
+            </p>
+          )}
         </fieldset>
 
         <div className="flex flex-1 flex-col">
-          {weather.status === "error" ? (
-            <ErrorState
-              message={weather.error}
-              noKey={weather.code === "NO_KEY"}
-              onRetry={weather.retry}
-            />
+          {!hasApiKey ? (
+            <NoKeyState />
           ) : weather.data && visual ? (
-            <WeatherBody data={weather.data} visual={visual} />
+            <WeatherBody data={weather.data} visual={visual} stale={stale} />
+          ) : weather.status === "error" ? (
+            <ErrorState
+              message={weather.error ?? "Une erreur inattendue est survenue."}
+              code={weather.code}
+              onRetry={weather.retry}
+              onReset={() => setSelection(null)}
+            />
           ) : (
             <LoadingState />
           )}
@@ -224,49 +290,77 @@ function CityCardImpl({
 
         <div className="flex min-h-8 items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="flex min-w-0 items-center gap-1.5">
-            {weather.data?.isForecast ? (
+            {stale && weather.data ? (
+              <>
+                <CloudOff aria-hidden="true" className="size-3.5 shrink-0 text-amber-600" />
+                <span className="truncate">
+                  Données de {formatTime(weather.data.fetchedAt, offset)} · mise à jour impossible
+                </span>
+              </>
+            ) : weather.data?.isForecast ? (
               <>
                 <CalendarClock aria-hidden="true" className="size-3.5 shrink-0" />
                 <span className="truncate">
-                  Prévision · {formatDateTime(new Date(weather.data.timestamp))}
+                  Prévision · {formatDateTime(weather.data.timestamp, offset)}
                 </span>
               </>
             ) : weather.data ? (
               <>
                 <Clock aria-hidden="true" className="size-3.5 shrink-0" />
                 <span className="truncate">
-                  Actuellement · mis à jour à {formatTime(new Date(weather.data.fetchedAt))}
+                  Actuellement · mis à jour à {formatTime(weather.data.fetchedAt, offset)}
                 </span>
               </>
             ) : null}
           </span>
-          {selection && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="-mr-2 h-8 shrink-0 px-2 text-xs"
-              onClick={() => setSelection(null)}
-            >
-              <RotateCcw aria-hidden="true" />
-              Maintenant
-            </Button>
-          )}
+          <span className="flex shrink-0 items-center">
+            {stale && weather.code !== null && RETRYABLE_CODES.has(weather.code) && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="rounded-full"
+                aria-label={`Réessayer la mise à jour de ${city.name}`}
+                title="Réessayer"
+                onClick={weather.retry}
+              >
+                <RotateCw aria-hidden="true" />
+              </Button>
+            )}
+            {selection && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-mr-2 h-8 px-2 text-xs pointer-coarse:h-11"
+                onClick={() => setSelection(null)}
+              >
+                <RotateCcw aria-hidden="true" />
+                Maintenant
+              </Button>
+            )}
+          </span>
         </div>
       </div>
-    </Card>
+    </article>
   );
 }
 
 function WeatherBody({
   data,
   visual,
+  stale,
 }: {
   data: WeatherSnapshot;
-  visual: ReturnType<typeof getWeatherVisual>;
+  visual: WeatherVisual;
+  stale: boolean;
 }) {
   const { Icon } = visual;
   return (
-    <div className="flex flex-1 flex-col gap-4 animate-in fade-in-0 animation-duration-300">
+    <div
+      className={cn(
+        "flex flex-1 flex-col gap-4 transition-opacity duration-200 ease-out animate-in fade-in-0 animation-duration-200",
+        stale && "opacity-75",
+      )}
+    >
       <div className="flex items-center gap-4">
         <div className={cn("grid size-16 shrink-0 place-items-center rounded-2xl", visual.bg)}>
           <Icon
@@ -326,18 +420,10 @@ function WeatherBody({
   );
 }
 
-function Detail({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Thermometer;
-  label: string;
-  value: string;
-}) {
+function Detail({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="rounded-lg bg-muted/60 px-1.5 py-2">
-      <dt className="flex items-center justify-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <dt className="flex items-center justify-center gap-1 text-[11px] font-medium uppercase leading-4 tracking-wide text-muted-foreground">
         <Icon aria-hidden="true" className="size-3.5" />
         {label}
       </dt>
@@ -346,53 +432,76 @@ function Detail({
   );
 }
 
+/** Squelette aux dimensions exactes du contenu final (pas de décalage de mise en page). */
 function LoadingState() {
   return (
     <div className="flex flex-1 flex-col gap-4" role="status">
       <span className="sr-only">Chargement de la météo...</span>
+      {/* Icône 64 px + bloc température 48 + 6 + 20 = 74 px */}
       <div className="flex items-center gap-4">
-        <Skeleton className="size-16 rounded-2xl" />
-        <div className="flex-1 space-y-2.5">
-          <Skeleton className="h-11 w-24" />
-          <Skeleton className="h-4 w-32" />
+        <Skeleton className="size-16 shrink-0 rounded-2xl" />
+        <div className="flex-1">
+          <Skeleton className="h-12 w-24" />
+          <Skeleton className="mt-1.5 h-5 w-32" />
         </div>
       </div>
       <Skeleton className="h-5 w-28" />
       <Separator />
+      {/* Tuiles : 8 + 16 + 2 + 20 + 8 = 54 px */}
       <div className="grid grid-cols-3 gap-2">
-        <Skeleton className="h-[3.25rem] rounded-lg" />
-        <Skeleton className="h-[3.25rem] rounded-lg" />
-        <Skeleton className="h-[3.25rem] rounded-lg" />
+        <Skeleton className="h-[3.375rem] rounded-lg" />
+        <Skeleton className="h-[3.375rem] rounded-lg" />
+        <Skeleton className="h-[3.375rem] rounded-lg" />
       </div>
+    </div>
+  );
+}
+
+/** État neutre sans clé API (la bannière en haut de page explique déjà le problème). */
+function NoKeyState() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-6 text-center text-muted-foreground">
+      <span className="grid size-11 place-items-center rounded-full bg-muted">
+        <KeyRound aria-hidden="true" className="size-5" />
+      </span>
+      <p className="text-sm">Données indisponibles</p>
     </div>
   );
 }
 
 function ErrorState({
   message,
-  noKey,
+  code,
   onRetry,
+  onReset,
 }: {
   message: string;
-  noKey: boolean;
+  code: WeatherErrorCode | null;
   onRetry: () => void;
+  onReset: () => void;
 }) {
-  const Icon = noKey ? KeyRound : AlertTriangle;
+  const outOfRange = code === "PAST_DATE" || code === "OUT_OF_RANGE";
+  const retryable = code === null || RETRYABLE_CODES.has(code);
   return (
     <div
       role="status"
-      className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4 py-6 text-center animate-in fade-in-0 animation-duration-300"
+      className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4 py-6 text-center animate-in fade-in-0 animation-duration-200"
     >
       <span className="grid size-11 place-items-center rounded-full bg-destructive/10 text-destructive">
-        <Icon aria-hidden="true" className="size-5" />
+        <AlertTriangle aria-hidden="true" className="size-5" />
       </span>
       <p className="text-sm font-medium">{message}</p>
-      {!noKey && (
-        <Button variant="outline" size="sm" onClick={onRetry}>
+      {outOfRange ? (
+        <Button variant="outline" size="sm" className="pointer-coarse:h-11" onClick={onReset}>
+          <RotateCcw aria-hidden="true" />
+          Revenir à maintenant
+        </Button>
+      ) : retryable ? (
+        <Button variant="outline" size="sm" className="pointer-coarse:h-11" onClick={onRetry}>
           <RotateCw aria-hidden="true" />
           Réessayer
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }

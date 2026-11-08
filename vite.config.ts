@@ -9,18 +9,20 @@ import { defineConfig, type Plugin } from "vite";
  * avec `script-src 'self'`.
  */
 const CSP = [
-  "default-src 'self'",
+  "default-src 'none'",
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src https://fonts.gstatic.com",
-  "img-src 'self' data: https://openweathermap.org",
+  // 'unsafe-inline' requis par sonner (styles injectés à l'exécution).
+  "style-src 'self' 'unsafe-inline'",
+  // Polices auto-hébergées (@fontsource-variable).
+  "font-src 'self'",
+  "img-src 'self' data:",
   "connect-src https://api.openweathermap.org",
   "media-src 'self'",
   "manifest-src 'self'",
-  "worker-src 'none'",
   "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "upgrade-insecure-requests",
 ].join("; ");
 
 function productionCsp(): Plugin {

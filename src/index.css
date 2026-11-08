@@ -43,7 +43,8 @@
   --popover: hsl(226 37% 13%);
   --popover-foreground: hsl(210 40% 96%);
   --primary: hsl(217 91% 60%); /* #3b82f6 */
-  --primary-foreground: hsl(0 0% 100%);
+  /* Texte sombre sur le bleu du thème sombre : 4,8:1 (le blanc n'atteint que 3,7:1). */
+  --primary-foreground: hsl(222 47% 11%);
   --secondary: hsl(192 91% 36%);
   --secondary-foreground: hsl(0 0% 100%);
   --accent: hsl(38 92% 50%);
@@ -58,8 +59,8 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-heading: "Outfit", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-heading: "Outfit Variable", "Outfit", "Inter Variable", system-ui, sans-serif;
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -110,6 +111,7 @@
   --color-cyan-300: #67e8f9;
   --color-cyan-500: #06b6d4;
   --color-cyan-600: #0891b2;
+  --color-cyan-700: #0e7490;
   --color-cyan-800: #155e75;
   --color-gray-300: #d1d5db;
   --color-gray-400: #9ca3af;
@@ -245,7 +247,7 @@
   }
 
   body {
-    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    @apply min-h-svh bg-background font-sans text-foreground antialiased;
     overflow-x: clip;
     text-rendering: optimizeLegibility;
   }

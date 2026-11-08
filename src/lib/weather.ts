@@ -3,11 +3,13 @@
  * - réponses validées à l'exécution (schémas Zod)
  * - timeout via AbortController
  * - cache mémoire (5 min) + déduplication des requêtes en vol
- * - limitation de concurrence et espacement des requêtes (anti rate-limit)
+ * - limitation de concurrence et espacement des requêtes (anti rate-limit),
+ *   pause de la file après une réponse 429, puis une seule nouvelle tentative
+ * - activité réseau observable (indicateur d'actualisation)
  * - messages d'erreur en français
  */
 
-import type { z } from "zod";
+import { z } from "zod";
 
 import { API_KEY, hasApiKey } from "@/lib/env";
 import {
@@ -23,15 +25,34 @@ import {
 
 export type { OwmCurrentResponse, OwmForecastItem, OwmForecastResponse };
 
+/**
+ * Schémas enrichis du décalage horaire (`timezone`, en secondes) : nécessaire
+ * pour afficher l'heure locale des villes internationales.
+ */
+const currentSchema = owmCurrentResponseSchema.extend({ timezone: z.number().optional() });
+const forecastSchema = owmForecastResponseSchema.extend({
+  city: z.object({ timezone: z.number().optional() }).optional(),
+});
+type CurrentResponse = z.infer<typeof currentSchema>;
+type ForecastResponse = z.infer<typeof forecastSchema>;
+
 const API_BASE = "https://api.openweathermap.org/data/2.5";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_CONCURRENT_REQUESTS = 3;
 const MIN_REQUEST_SPACING_MS = 120;
+/** Pause de la file après un 429 (si l'API n'envoie pas d'en-tête Retry-After). */
+const RATE_LIMIT_PAUSE_MS = 10_000;
+const MAX_RATE_LIMIT_PAUSE_MS = 60_000;
 /** Écart toléré entre l'heure demandée et "maintenant" pour utiliser la météo actuelle. */
-const CURRENT_TOLERANCE_MS = 90 * 60 * 1000;
+export const CURRENT_TOLERANCE_MS = 90 * 60 * 1000;
 /** Écart maximal entre l'heure demandée et l'entrée de prévision la plus proche. */
 const FORECAST_TOLERANCE_MS = 3 * 60 * 60 * 1000;
+/**
+ * Horizon garanti des prévisions à partir de maintenant : 40 pas de 3 h dont
+ * le premier tombe dans les 3 h, soit au moins 117 h (4 j 21 h).
+ */
+export const FORECAST_HORIZON_MS = 117 * 60 * 60 * 1000;
 
 export { hasApiKey };
 
@@ -39,7 +60,7 @@ export { hasApiKey };
 /*                                   Types                                    */
 /* -------------------------------------------------------------------------- */
 
-export type LocationQuery = { q: string } | { id: number };
+export type LocationQuery = { q: string } | { id: number } | { lat: number; lon: number };
 
 export interface WeatherSnapshot {
   conditionId: number;
@@ -60,12 +81,16 @@ export interface WeatherSnapshot {
   isForecast: boolean;
   /** Heure à laquelle la donnée a été obtenue (ms). */
   fetchedAt: number;
+  /** Décalage UTC du lieu en secondes (null si l'API ne l'a pas fourni). */
+  utcOffsetSec: number | null;
 }
 
 export interface FoundCity {
   id: number;
   name: string;
   country?: string;
+  /** Décalage UTC en secondes. */
+  utcOffsetSec?: number;
 }
 
 export type WeatherErrorCode =
@@ -80,6 +105,15 @@ export type WeatherErrorCode =
   | "PAST_DATE"
   | "OUT_OF_RANGE"
   | "BAD_RESPONSE";
+
+/** Erreurs passagères : une nouvelle tentative peut réussir. */
+export const RETRYABLE_CODES: ReadonlySet<WeatherErrorCode> = new Set([
+  "NETWORK",
+  "TIMEOUT",
+  "SERVER",
+  "RATE_LIMIT",
+  "BAD_RESPONSE",
+]);
 
 export class WeatherError extends Error {
   readonly code: WeatherErrorCode;
@@ -134,13 +168,48 @@ function abortError(): DOMException {
 const queue: Array<() => void> = [];
 let activeRequests = 0;
 let lastRequestAt = 0;
+/** Horodatage jusqu'auquel la file reste en pause après un 429. */
+let pausedUntil = 0;
 let pumpTimer: ReturnType<typeof setTimeout> | null = null;
+
+/* Activité réseau observable (requêtes en cours + en attente). */
+const activityListeners = new Set<() => void>();
+let activityCount = 0;
+
+function notifyActivity(): void {
+  const next = activeRequests + queue.length;
+  if (next === activityCount) return;
+  activityCount = next;
+  for (const listener of activityListeners) listener();
+}
+
+export function subscribeWeatherActivity(listener: () => void): () => void {
+  activityListeners.add(listener);
+  return () => {
+    activityListeners.delete(listener);
+  };
+}
+
+/** Nombre de requêtes météo en cours ou en attente. */
+export const getWeatherActivity = (): number => activityCount;
+
+/** Temps restant (ms) avant la fin de la pause imposée par un 429 (0 si aucune). */
+export const rateLimitRemainingMs = (): number => Math.max(0, pausedUntil - Date.now());
+
+function pauseQueue(retryAfterHeader: string | null): void {
+  const seconds = Number(retryAfterHeader);
+  const pause =
+    Number.isFinite(seconds) && seconds > 0
+      ? Math.min(seconds * 1000, MAX_RATE_LIMIT_PAUSE_MS)
+      : RATE_LIMIT_PAUSE_MS;
+  pausedUntil = Math.max(pausedUntil, Date.now() + pause);
+}
 
 function pump(): void {
   if (pumpTimer !== null) return;
   if (activeRequests >= MAX_CONCURRENT_REQUESTS || queue.length === 0) return;
 
-  const wait = lastRequestAt + MIN_REQUEST_SPACING_MS - Date.now();
+  const wait = Math.max(lastRequestAt + MIN_REQUEST_SPACING_MS, pausedUntil) - Date.now();
   if (wait > 0) {
     pumpTimer = setTimeout(() => {
       pumpTimer = null;
@@ -163,9 +232,11 @@ function schedule<T>(task: () => Promise<T>): Promise<T> {
         .then(resolve, reject)
         .finally(() => {
           activeRequests -= 1;
+          notifyActivity();
           pump();
         });
     });
+    notifyActivity();
     pump();
   });
 }
@@ -183,15 +254,26 @@ const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<unknown>>();
 
 function queryParams(query: LocationQuery): Record<string, string> {
-  return "id" in query ? { id: String(query.id) } : { q: query.q };
+  if ("id" in query) return { id: String(query.id) };
+  if ("lat" in query) return { lat: String(query.lat), lon: String(query.lon) };
+  return { q: query.q };
+}
+
+/** Clé stable d'un lieu (pour les dépendances d'effets). */
+export function locationKey(query: LocationQuery): string {
+  return new URLSearchParams(queryParams(query)).toString();
 }
 
 function cacheKey(endpoint: string, query: LocationQuery): string {
-  return `${endpoint}?${new URLSearchParams(queryParams(query)).toString()}`;
+  return `${endpoint}?${locationKey(query)}`;
 }
 
-export function clearWeatherCache(): void {
-  cache.clear();
+/**
+ * Marque toutes les réponses en cache comme périmées : la prochaine lecture
+ * relance une requête. Les entrées ne sont pas supprimées.
+ */
+export function invalidateWeatherCache(): void {
+  for (const entry of cache.values()) entry.expiresAt = 0;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -220,7 +302,10 @@ async function fetchJson(url: string): Promise<unknown> {
     clearTimeout(timer);
   }
 
-  if (!response.ok) throw errorFromStatus(response.status);
+  if (!response.ok) {
+    if (response.status === 429) pauseQueue(response.headers.get("Retry-After"));
+    throw errorFromStatus(response.status);
+  }
 
   try {
     return (await response.json()) as unknown;
@@ -284,7 +369,13 @@ function request<S extends z.ZodType>(
     });
     const url = `${API_BASE}/${endpoint}?${params.toString()}`;
 
-    pending = schedule(() => fetchJson(url))
+    const run = () => schedule(() => fetchJson(url));
+    pending = run()
+      // Après un 429, la file est en pause : une seule nouvelle tentative, différée d'autant.
+      .catch((error: unknown) => {
+        if (error instanceof WeatherError && error.code === "RATE_LIMIT") return run();
+        throw error;
+      })
       .then((raw) => {
         const data = parseResponse(schema, raw);
         cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -300,15 +391,12 @@ function request<S extends z.ZodType>(
 export function getCurrentWeather(
   query: LocationQuery,
   signal?: AbortSignal,
-): Promise<OwmCurrentResponse> {
-  return request("weather", query, owmCurrentResponseSchema, signal);
+): Promise<CurrentResponse> {
+  return request("weather", query, currentSchema, signal);
 }
 
-export function getForecast(
-  query: LocationQuery,
-  signal?: AbortSignal,
-): Promise<OwmForecastResponse> {
-  return request("forecast", query, owmForecastResponseSchema, signal);
+export function getForecast(query: LocationQuery, signal?: AbortSignal): Promise<ForecastResponse> {
+  return request("forecast", query, forecastSchema, signal);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -327,6 +415,7 @@ function snapshotFrom(
     pop?: number | undefined;
   },
   isForecast: boolean,
+  utcOffsetSec: number | undefined,
 ): WeatherSnapshot {
   const condition = item.weather[0];
   return {
@@ -344,26 +433,28 @@ function snapshotFrom(
     timestamp: item.dt * 1000,
     isForecast,
     fetchedAt: Date.now(),
+    utcOffsetSec: typeof utcOffsetSec === "number" ? utcOffsetSec : null,
   };
 }
 
 /**
- * Météo pour une date cible : actuelle si `target` est nul ou proche de
+ * Météo pour une date cible (ms) : actuelle si `targetMs` est nul ou proche de
  * maintenant, sinon l'entrée de prévision (pas de 3 h, 5 jours) la plus proche.
  */
 export async function getWeatherAt(
   query: LocationQuery,
-  target: Date | null,
+  targetMs: number | null,
   signal?: AbortSignal,
 ): Promise<WeatherSnapshot> {
   const now = Date.now();
-  const targetMs = target?.getTime() ?? now;
+  const target = targetMs ?? now;
 
-  if (Math.abs(targetMs - now) <= CURRENT_TOLERANCE_MS) {
-    return snapshotFrom(await getCurrentWeather(query, signal), false);
+  if (Math.abs(target - now) <= CURRENT_TOLERANCE_MS) {
+    const current = await getCurrentWeather(query, signal);
+    return snapshotFrom(current, false, current.timezone);
   }
 
-  if (targetMs < now) {
+  if (target < now) {
     throw new WeatherError(
       "PAST_DATE",
       "Les données passées ne sont pas disponibles. Choisissez une date à venir.",
@@ -374,7 +465,7 @@ export async function getWeatherAt(
   let closest: OwmForecastItem | null = null;
   let minDiff = Number.POSITIVE_INFINITY;
   for (const item of forecast.list) {
-    const diff = Math.abs(item.dt * 1000 - targetMs);
+    const diff = Math.abs(item.dt * 1000 - target);
     if (diff < minDiff) {
       minDiff = diff;
       closest = item;
@@ -384,14 +475,14 @@ export async function getWeatherAt(
   if (!closest || minDiff > FORECAST_TOLERANCE_MS) {
     throw new WeatherError("OUT_OF_RANGE", "Prévisions disponibles sur 5 jours maximum.");
   }
-  return snapshotFrom(closest, true);
+  return snapshotFrom(closest, true, forecast.city?.timezone);
 }
 
 /**
  * Recherche une ville : d'abord en Côte d'Ivoire, puis partout dans le monde.
  */
 export async function lookupCity(name: string, signal?: AbortSignal): Promise<FoundCity> {
-  let data: OwmCurrentResponse;
+  let data: CurrentResponse;
   try {
     data = await getCurrentWeather({ q: `${name},CI` }, signal);
   } catch (error) {
@@ -405,5 +496,10 @@ export async function lookupCity(name: string, signal?: AbortSignal): Promise<Fo
     expiresAt: Date.now() + CACHE_TTL_MS,
   });
 
-  return { id: data.id, name: data.name || name, country: data.sys?.country };
+  return {
+    id: data.id,
+    name: data.name || name,
+    country: data.sys?.country,
+    utcOffsetSec: data.timezone,
+  };
 }

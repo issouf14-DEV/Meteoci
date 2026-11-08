@@ -13,7 +13,8 @@ const badgeVariants = cva(
         accent: "border-transparent bg-accent/15 text-amber-800 dark:text-amber-300",
         muted: "border-transparent bg-muted text-muted-foreground",
         outline: "text-foreground",
-        glass: "border-white/25 bg-white/10 text-white backdrop-blur-md",
+        // Fond sombre opaque, sans flou : lisible et peu coûteux au-dessus de la vidéo.
+        glass: "border-white/20 bg-black/35 text-white",
       },
     },
     defaultVariants: {

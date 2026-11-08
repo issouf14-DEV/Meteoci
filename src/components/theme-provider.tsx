@@ -21,7 +21,6 @@ const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 interface ThemeContextValue {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
@@ -50,6 +49,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       ?.setAttribute("content", THEME_COLORS[theme]);
   }, [theme]);
 
+  // Persistance hors de la fonction de mise à jour d'état (pas d'effet de bord rejoué en StrictMode).
+  useEffect(() => {
+    if (explicit) safeSetItem(THEME_STORAGE_KEY, theme);
+  }, [explicit, theme]);
+
   // Suit le thème du système tant que l'utilisateur n'a pas fait de choix.
   useEffect(() => {
     if (explicit || !window.matchMedia) return;
@@ -59,22 +63,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => media.removeEventListener("change", onChange);
   }, [explicit]);
 
-  const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
-    setExplicit(true);
-    safeSetItem(THEME_STORAGE_KEY, next);
-  }, []);
-
   const toggleTheme = useCallback(() => {
-    setThemeState((current) => {
-      const next: Theme = current === "dark" ? "light" : "dark";
-      safeSetItem(THEME_STORAGE_KEY, next);
-      return next;
-    });
+    setThemeState((current) => (current === "dark" ? "light" : "dark"));
     setExplicit(true);
   }, []);
 
-  const value = useMemo(() => ({ theme, setTheme, toggleTheme }), [theme, setTheme, toggleTheme]);
+  const value = useMemo(() => ({ theme, toggleTheme }), [theme, toggleTheme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

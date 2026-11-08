@@ -64,8 +64,8 @@ Application web moderne et responsive pour consulter la météo actuelle et les 
 ### Lancement en local
 
 ```bash
-git clone https://github.com/issouf14-DEV/meteo-ci.git
-cd meteo-ci
+git clone https://github.com/issouf14-DEV/Meteoci.git
+cd Meteoci
 npm install
 
 # Configurer la clé API (fichier ignoré par git)
@@ -85,7 +85,7 @@ Sans clé, l'application s'affiche quand même avec un bandeau explicatif.
 
 ### Déploiement (GitHub Pages)
 
-Le workflow `.github/workflows/static.yml` installe les dépendances, lance `npm run lint` et `npm run typecheck`, construit le site et publie uniquement `dist/`.
+Le workflow `.github/workflows/static.yml` installe les dépendances (`npm ci --ignore-scripts`), lance `npm audit --audit-level=high`, `npm run lint` et `npm run typecheck`, construit le site et publie uniquement `dist/`.
 
 1. Dans le dépôt GitHub : **Settings → Secrets and variables → Actions → New repository secret**
 2. Nom : `VITE_OWM_API_KEY`, valeur : votre clé OpenWeatherMap
@@ -95,16 +95,14 @@ Le workflow `.github/workflows/static.yml` installe les dépendances, lance `npm
 
 ## 🔒 Sécurité
 
-- Aucun `innerHTML` / `dangerouslySetInnerHTML` : tout le contenu est rendu par React (échappement automatique).
-- Content-Security-Policy stricte injectée dans le build de production (`script-src 'self'`, aucune ressource CDN de script).
-- Saisie de recherche validée par un schéma Zod (lettres, espaces, tirets, apostrophes ; 60 caractères max).
-- Chaque réponse de l'API OpenWeatherMap est validée par un schéma Zod (`safeParse`) avant utilisation ; la clé API (`VITE_OWM_API_KEY`) et le thème stocké dans `localStorage` sont également validés.
-- Biome interdit `dangerouslySetInnerHTML` et `any` (règles en erreur, vérifiées en CI).
-- Plus aucun système de comptes : les anciennes données stockées dans `localStorage` (utilisateurs, mots de passe, newsletter) sont supprimées automatiquement au chargement.
-
-> ⚠️ **Clé API visible côté client.** Toute variable `VITE_*` est intégrée au bundle JavaScript public : la clé reste lisible dans le navigateur. C'est inévitable sans un proxy côté serveur. Limitez son usage (quotas) dans votre compte OpenWeatherMap.
->
-> ⚠️ **Ancienne clé à révoquer.** L'ancienne clé était écrite en clair dans le code et reste présente dans l'historique git. Générez une nouvelle clé sur [openweathermap.org](https://home.openweathermap.org/api_keys), supprimez l'ancienne, puis mettez à jour `.env.local` et le secret GitHub.
+- **Clé API visible dans le bundle.** Toute variable `VITE_*` est intégrée au JavaScript publié : la clé `VITE_OWM_API_KEY` reste lisible par n'importe quel visiteur. C'est inévitable sans proxy côté serveur.
+- **Restreindre la clé.** OpenWeatherMap ne propose pas de quotas par clé : utilisez une clé dédiée à ce site, sur un compte gratuit sans moyen de paiement, et surveillez son usage.
+- **Rotation.** En cas d'abus (ou pour l'ancienne clé écrite en clair, toujours présente dans l'historique git), générez une nouvelle clé sur [openweathermap.org](https://home.openweathermap.org/api_keys), supprimez l'ancienne, puis mettez à jour `.env.local` et le secret GitHub.
+- **Secret GitHub.** En CI, la clé provient uniquement du secret `VITE_OWM_API_KEY` (jamais commitée ; `.env.local` est ignoré par git, seul `.env.example` est versionné).
+- **CSP stricte** injectée dans le build de production (`default-src 'none'`, `script-src 'self'`, polices auto-hébergées, seule connexion autorisée : `api.openweathermap.org`).
+- **Aucun `innerHTML` / `dangerouslySetInnerHTML`** (interdit par Biome) ; saisie de recherche et réponses de l'API validées par des schémas Zod.
+- **CI durcie** : actions épinglées par SHA, `npm ci --ignore-scripts`, `npm audit`, mises à jour via Dependabot.
+- Plus aucun système de comptes : les anciennes données `localStorage` (utilisateurs, mots de passe, newsletter) sont supprimées au chargement.
 
 ---
 
@@ -132,7 +130,6 @@ Le workflow `.github/workflows/static.yml` installe les dépendances, lance `npm
 ## 📧 Contact
 
 - **Auteur** : FOFANA ISSOUF
-- **Email** : 151082137+issouf14-DEV@users.noreply.github.com
 - **GitHub** : [issouf14-DEV](https://github.com/issouf14-DEV)
 
 ---

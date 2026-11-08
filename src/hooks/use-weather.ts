@@ -5,64 +5,83 @@ import {
   hasApiKey,
   isAbortError,
   type LocationQuery,
+  locationKey,
   toUserMessage,
   WeatherError,
   type WeatherErrorCode,
   type WeatherSnapshot,
 } from "@/lib/weather";
 
-export type WeatherState =
-  | { status: "loading"; data: WeatherSnapshot | null; error: null; code: null }
-  | { status: "success"; data: WeatherSnapshot; error: null; code: null }
-  | { status: "error"; data: null; error: string; code: WeatherErrorCode | null };
+export interface WeatherState {
+  status: "loading" | "success" | "error";
+  /**
+   * Dernière donnée valide. En cas d'échec d'un rafraîchissement, elle reste
+   * disponible (affichée comme « données de HH:MM ») au lieu d'être effacée.
+   */
+  data: WeatherSnapshot | null;
+  error: string | null;
+  code: WeatherErrorCode | null;
+}
 
-const queryKeyOf = (query: LocationQuery) => ("id" in query ? `id:${query.id}` : `q:${query.q}`);
+interface InternalState extends WeatherState {
+  /** Requête (lieu + date cible) à laquelle correspond `data`. */
+  dataKey: string | null;
+}
+
+const INITIAL: InternalState = hasApiKey
+  ? { status: "loading", data: null, error: null, code: null, dataKey: null }
+  : { status: "error", data: null, error: "Clé API manquante", code: "NO_KEY", dataKey: null };
 
 /**
- * Charge la météo d'un lieu pour une date cible (null = maintenant).
- * Les données précédentes restent affichées pendant un rafraîchissement.
+ * Charge la météo d'un lieu pour une date cible (ms, null = maintenant).
+ * - les données précédentes restent affichées pendant un rafraîchissement ;
+ * - si un rafraîchissement échoue, la dernière donnée valide du même lieu et
+ *   de la même date est conservée (statut "error" + `data` non nul) ;
+ * - `enabled = false` suspend les requêtes (carte masquée) sans perdre l'état.
  */
-export function useWeather(query: LocationQuery, target: Date | null, refreshKey: number) {
-  const [state, setState] = useState<WeatherState>(() =>
-    hasApiKey
-      ? { status: "loading", data: null, error: null, code: null }
-      : { status: "error", data: null, error: "Clé API manquante", code: "NO_KEY" },
-  );
+export function useWeather(
+  query: LocationQuery,
+  targetMs: number | null,
+  refreshKey: number,
+  enabled = true,
+) {
+  const [state, setState] = useState<InternalState>(INITIAL);
   const [attempt, setAttempt] = useState(0);
 
   const queryRef = useRef(query);
   queryRef.current = query;
-  const queryKey = queryKeyOf(query);
-  const targetMs = target?.getTime() ?? null;
+  const requestKey = `${locationKey(query)}|${targetMs ?? "now"}`;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `queryKey` (clé stable de `queryRef.current`), `refreshKey` et `attempt` sont des déclencheurs volontaires de rechargement.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `requestKey` (clé stable de `queryRef.current` + `targetMs`), `refreshKey` et `attempt` sont des déclencheurs volontaires de rechargement.
   useEffect(() => {
-    if (!hasApiKey) return;
+    if (!hasApiKey || !enabled) return;
 
     const controller = new AbortController();
-    setState((prev) => ({
-      status: "loading",
-      data: prev.status === "error" ? null : prev.data,
-      error: null,
-      code: null,
-    }));
+    setState((prev) => ({ ...prev, status: "loading", error: null, code: null }));
 
-    getWeatherAt(queryRef.current, targetMs === null ? null : new Date(targetMs), controller.signal)
-      .then((data) => setState({ status: "success", data, error: null, code: null }))
+    getWeatherAt(queryRef.current, targetMs, controller.signal)
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setState({ status: "success", data, error: null, code: null, dataKey: requestKey });
+      })
       .catch((error: unknown) => {
-        if (isAbortError(error)) return;
-        setState({
-          status: "error",
-          data: null,
-          error: toUserMessage(error),
-          code: error instanceof WeatherError ? error.code : null,
+        if (controller.signal.aborted || isAbortError(error)) return;
+        setState((prev) => {
+          const keep = prev.dataKey === requestKey ? prev.data : null;
+          return {
+            status: "error",
+            data: keep,
+            error: toUserMessage(error),
+            code: error instanceof WeatherError ? error.code : null,
+            dataKey: keep ? prev.dataKey : null,
+          };
         });
       });
 
     return () => controller.abort();
-  }, [queryKey, targetMs, refreshKey, attempt]);
+  }, [requestKey, refreshKey, attempt, enabled]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
-  return { ...state, retry };
+  return { status: state.status, data: state.data, error: state.error, code: state.code, retry };
 }
