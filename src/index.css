@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Palette Météo CI (valeurs HSL des couleurs d'origine) */
+  :root {
+    --background: 210 40% 98%; /* #f8fafc */
+    --foreground: 222 47% 11%; /* #0f172a */
+    --muted: 210 40% 96%; /* #f1f5f9 */
+    --muted-foreground: 215 19% 35%; /* #475569 */
+    --faint: 215 20% 65%; /* #94a3b8 */
+    --surface: 214 32% 91%; /* #e2e8f0 */
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 226 71% 40%; /* #1e40af */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 192 91% 36%; /* #0891b2 */
+    --secondary-foreground: 0 0% 100%;
+    --accent: 38 92% 50%; /* #f59e0b */
+    --accent-foreground: 222 47% 11%;
+    --success: 160 84% 39%; /* #10b981 */
+    --success-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%; /* #ef4444 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%; /* #e2e8f0 */
+    --input: 214 32% 91%;
+    --ring: 226 71% 40%;
+    --radius: 0.875rem;
+  }
+
+  .dark {
+    --background: 224 50% 9%; /* #0b1121 */
+    --foreground: 210 40% 96%; /* #f1f5f9 */
+    --muted: 227 35% 16%; /* #1a2036 */
+    --muted-foreground: 215 20% 65%; /* #94a3b8 */
+    --faint: 215 16% 47%; /* #64748b */
+    --surface: 227 33% 23%; /* #272f4d */
+    --card: 226 37% 13%; /* #151b2e */
+    --card-foreground: 210 40% 96%;
+    --popover: 226 37% 13%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 217 91% 60%; /* #3b82f6 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 192 91% 36%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 11%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 23% 23%; /* #2d3748 */
+    --input: 218 23% 23%;
+    --ring: 217 91% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    overflow-x: clip;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-tight;
+  }
+
+  ::selection {
+    @apply bg-primary/20;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

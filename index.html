@@ -1,319 +1,40 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta
+      name="description"
+      content="Météo CI - Consultez les prévisions météorologiques des principales villes de Côte d'Ivoire en temps réel."
+    />
+    <meta name="keywords" content="météo, Côte d'Ivoire, Abidjan, prévisions, temps, weather" />
+    <meta name="author" content="FOFANA ISSOUF" />
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="color-scheme" content="light dark" />
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description"
-    content="Météo CI - Consultez les prévisions météorologiques des principales villes de Côte d'Ivoire en temps réel." />
-  <meta name="keywords" content="météo, Côte d'Ivoire, Abidjan, prévisions, temps, weather" />
-  <meta name="author" content="FOFANA ISSOUF" />
-  <meta name="theme-color" content="#1e40af" />
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://code.jquery.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://images.unsplash.com; connect-src 'self' https://api.openweathermap.org; media-src 'self' https://images.unsplash.com; font-src 'self' https://cdnjs.cloudflare.com;" />
+    <meta property="og:title" content="Météo CI - La météo en Côte d'Ivoire" />
+    <meta property="og:description" content="Consultez les prévisions météo des villes ivoiriennes en temps réel." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_CI" />
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Météo CI - La météo en Côte d'Ivoire" />
-  <meta property="og:description" content="Consultez les prévisions météo des villes ivoiriennes en temps réel." />
-  <meta property="og:type" content="website" />
+    <title>Météo CI - Prévisions météo en Côte d'Ivoire</title>
 
-  <title>Météo CI - Prévisions météo en Côte d'Ivoire</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+    />
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/main.css" />
-
-  <!-- jQuery -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-</head>
-
-<body class="bg-primary min-h-screen">
-
-  <!-- Loading Screen -->
-  <div id="app-loader" class="loader">
-    <div class="loader__spinner"></div>
-    <p class="loader__text">Chargement de Météo CI...</p>
-  </div>
-
-  <!-- Header -->
-  <header class="header">
-    <div class="header__logo">
-      <strong class="header__logo-text">Météo CI</strong>
-      <i class="header__logo-icon fa-solid fa-cloud-sun"></i>
-    </div>
-
-    <!-- Search Bar -->
-    <div class="search">
-      <input type="text" id="search-input" class="search__input" placeholder="Rechercher une ville..."
-        aria-label="Rechercher une ville" />
-      <i class="search__icon fa-solid fa-magnifying-glass" aria-label="Rechercher"></i>
-    </div>
-
-    <!-- Actions -->
-    <div class="header__actions">
-      <button class="header__action-btn header__action-btn--theme" aria-label="Changer le thème">
-        <i class="fa-regular fa-moon" id="lune"></i>
-      </button>
-      <button class="header__action-btn" id="user" aria-label="Mon compte">
-        <i class="fa-regular fa-user"></i>
-      </button>
-    </div>
-  </header>
-
-
-
-  <!-- Auth Modal -->
-  <div id="auth-modal" class="modal-backdrop active">
-    <div class="modal auth-modal">
-      <div class="modal__header auth-modal__header">
-        <div class="auth-modal__brand">
-          <div class="auth-modal__logo">
-            <i class="fa-solid fa-cloud-sun"></i>
-          </div>
-          <h2 class="modal__title">Météo CI</h2>
-          <p class="auth-modal__subtitle">Connectez-vous pour accéder aux prévisions</p>
-        </div>
-        <button id="close-auth-modal" class="modal__close hidden" aria-label="Fermer">
-          <i class="fa-solid fa-times"></i>
-        </button>
-      </div>
-
-      <div class="modal__body">
-        <!-- Login Form -->
-        <form id="login-form" class="auth-form" autocomplete="off">
-          <div class="form-group">
-            <label for="login-username" class="form-label">
-              <i class="fa-solid fa-user"></i> Nom d'utilisateur
-            </label>
-            <div class="form-input-wrapper">
-              <input type="text" id="login-username" class="form-input" placeholder="Entrez votre identifiant"
-                autocomplete="username" required />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="login-password" class="form-label">
-              <i class="fa-solid fa-lock"></i> Mot de passe
-            </label>
-            <div class="form-input-wrapper form-input-wrapper--password">
-              <input type="password" id="login-password" class="form-input" placeholder="Entrez votre mot de passe"
-                autocomplete="current-password" required />
-              <button type="button" class="toggle-password" aria-label="Afficher le mot de passe">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-          </div>
-          <button type="submit" class="btn btn--primary btn--full btn--lg">
-            <i class="fa-solid fa-sign-in-alt"></i> Se connecter
-          </button>
-          <div class="auth-form__divider">
-            <span>ou</span>
-          </div>
-          <p class="text-center text-sm text-secondary">
-            Pas encore de compte ?
-            <a href="#" id="show-register" class="link link--strong">Créer un compte</a>
-          </p>
-        </form>
-
-        <!-- Register Form -->
-        <form id="register-form" class="auth-form hidden" autocomplete="off">
-          <div class="form-group">
-            <label for="register-fullname" class="form-label">
-              <i class="fa-solid fa-id-card"></i> Nom complet
-            </label>
-            <div class="form-input-wrapper">
-              <input type="text" id="register-fullname" class="form-input" placeholder="Ex: Kouassi Jean"
-                autocomplete="name" required />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="register-username" class="form-label">
-              <i class="fa-solid fa-at"></i> Nom d'utilisateur
-            </label>
-            <div class="form-input-wrapper">
-              <input type="text" id="register-username" class="form-input" placeholder="Lettres, chiffres et _"
-                autocomplete="username" pattern="[a-zA-Z0-9_]+" required />
-            </div>
-            <span class="form-hint">Min. 3 caractères (lettres, chiffres, _)</span>
-          </div>
-          <div class="form-group">
-            <label for="register-password" class="form-label">
-              <i class="fa-solid fa-shield-halved"></i> Mot de passe
-            </label>
-            <div class="form-input-wrapper form-input-wrapper--password">
-              <input type="password" id="register-password" class="form-input"
-                placeholder="Min. 6 chars, Maj + min + chiffre" autocomplete="new-password" required />
-              <button type="button" class="toggle-password" aria-label="Afficher le mot de passe">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-            <!-- Password strength bar -->
-            <div class="password-strength">
-              <div class="password-strength__track">
-                <div id="password-strength-bar" class="password-strength__bar"></div>
-              </div>
-              <span id="password-strength-text" class="password-strength__text"></span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="register-confirm-password" class="form-label">
-              <i class="fa-solid fa-check-double"></i> Confirmer le mot de passe
-            </label>
-            <div class="form-input-wrapper form-input-wrapper--password">
-              <input type="password" id="register-confirm-password" class="form-input"
-                placeholder="Retapez le mot de passe" autocomplete="new-password" required />
-              <button type="button" class="toggle-password" aria-label="Afficher le mot de passe">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-          </div>
-          <button type="submit" class="btn btn--secondary btn--full btn--lg">
-            <i class="fa-solid fa-user-plus"></i> Créer mon compte
-          </button>
-          <div class="auth-form__divider">
-            <span>ou</span>
-          </div>
-          <p class="text-center text-sm text-secondary">
-            Déjà inscrit ?
-            <a href="#" id="show-login" class="link link--strong">Se connecter</a>
-          </p>
-        </form>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- Hero Section -->
-  <section class="hero">
-    <video class="hero__video" autoplay muted loop playsinline
-      poster="https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=1200&h=600&fit=crop">
-      <source src="video/v1.mp4" type="video/mp4" />
-      <source src="video/v1.webm" type="video/webm" />
-      Votre navigateur ne supporte pas la vidéo HTML5.
-    </video>
-    <div class="hero__overlay"></div>
-    <div class="hero__content">
-      <h1 id="dynamic-title" class="hero__title animate-fade-in-down mb-4 text-3xl md:text-5xl font-bold">Météo CI</h1>
-      <p class="hero__subtitle animate-fade-in-up text-xl opacity-90">Côte d'Ivoire</p>
-      <i class="hero__icon fa-regular fa-star mt-4"></i>
-    </div>
-  </section>
-
-  <!-- Cities Grid -->
-  <section id="cities-container" class="cities-grid">
-    <!-- City cards will be generated dynamically by JavaScript -->
-  </section>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer__grid">
-      <!-- Logo & Description -->
-      <div class="text-center md:text-left">
-        <div class="flex items-center justify-center md:justify-start gap-3 mb-4">
-          <i class="fa-solid fa-cloud-sun text-3xl text-accent"></i>
-          <span class="text-2xl font-bold">Météo CI</span>
-        </div>
-        <p class="footer__description">
-          Consultez les prévisions météorologiques des principales villes de
-          Côte d'Ivoire en temps réel. Données fiables et mises à jour régulièrement.
-        </p>
-      </div>
-
-      <!-- Useful Links -->
-      <div class="text-center md:text-left">
-        <h3 class="footer__section-title">Liens utiles</h3>
-        <nav>
-          <ul class="footer__nav">
-            <li class="footer__nav-item">
-              <a href="#" class="footer__nav-link">
-                <i class="fa-solid fa-home"></i> Accueil
-              </a>
-            </li>
-            <li class="footer__nav-item">
-              <a href="#" class="footer__nav-link">
-                <i class="fa-solid fa-info-circle"></i> À propos
-              </a>
-            </li>
-            <li class="footer__nav-item">
-              <a href="#" class="footer__nav-link">
-                <i class="fa-solid fa-envelope"></i> Contact
-              </a>
-            </li>
-            <li class="footer__nav-item">
-              <a href="#" class="footer__nav-link">
-                <i class="fa-solid fa-gavel"></i> Mentions légales
-              </a>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
-      <!-- Social & Newsletter -->
-      <div class="text-center md:text-left">
-        <h3 class="footer__section-title">Suivez-nous</h3>
-        <div class="footer__social">
-          <a href="#" class="footer__social-link" aria-label="Facebook">
-            <i class="fa-brands fa-facebook-f"></i>
-          </a>
-          <a href="#" class="footer__social-link" aria-label="Twitter">
-            <i class="fa-brands fa-twitter"></i>
-          </a>
-          <a href="#" class="footer__social-link" aria-label="Instagram">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-          <a href="#" class="footer__social-link" aria-label="YouTube">
-            <i class="fa-brands fa-youtube"></i>
-          </a>
-          <a href="#" class="footer__social-link" aria-label="WhatsApp">
-            <i class="fa-brands fa-whatsapp"></i>
-          </a>
-        </div>
-
-        <div class="mt-lg">
-          <h4 class="text-sm font-semibold mb-2 opacity-80">Newsletter</h4>
-          <form id="newsletter-form" class="footer__newsletter" novalidate>
-            <input type="email" id="newsletter-email" class="footer__newsletter-input"
-              placeholder="Votre email" required autocomplete="email"
-              maxlength="254" aria-label="Adresse email pour la newsletter" />
-            <button type="submit" id="newsletter-btn" class="footer__newsletter-btn">OK</button>
-          </form>
-          <p id="newsletter-msg" class="footer__newsletter-msg"></p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Bar -->
-    <div class="footer__bottom">
-      <p class="footer__copyright">
-        © 2025 Météo CI — Tous droits réservés.
-      </p>
-      <div class="footer__credits">
-        <span>Développé par FOF</span>
-        <span>•</span>
-        <span>Version 2.0</span>
-      </div>
-    </div>
-  </footer>
-
-  <!-- JavaScript Modules -->
-  <script src="js/config.js"></script>
-  <script src="js/ui/notifications.js"></script>
-  <script src="js/ui/theme.js"></script>
-  <script src="js/ui/animations.js"></script>
-  <script src="js/api/weather.js"></script>
-  <script src="js/auth/auth.js"></script>
-  <script src="js/components/cityCard.js"></script>
-  <script src="js/components/newsletter.js"></script>
-  <script src="js/components/search.js"></script>
-  <script src="js/main.js"></script>
-</body>
-
+    <!-- Applique le thème avant le premier rendu (évite le flash). Script externe : compatible CSP. -->
+    <script src="./theme-init.js"></script>
+  </head>
+  <body>
+    <noscript>Météo CI nécessite JavaScript pour afficher les prévisions.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
