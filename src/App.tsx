@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { ApiKeyBanner } from "@/components/api-key-banner";
+import { ServiceUnavailableBanner } from "@/components/api-key-banner";
 import { CityGrid } from "@/components/city-grid";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
 import { Toaster } from "@/components/ui/sonner";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useWeatherServiceAvailable } from "@/hooks/use-weather-service";
 import { CITIES, type City, createCityId, normalizeName, owmIdOf } from "@/lib/cities";
 import { CI_UTC_OFFSET_SEC } from "@/lib/date";
 import { SITE } from "@/lib/site";
 import { MAX_DYNAMIC_CITIES, validateCityName } from "@/lib/validation";
 import {
-  hasApiKey,
   invalidateWeatherCache,
   isAbortError,
+  isWeatherServiceAvailable,
   lookupCity,
   rateLimitRemainingMs,
   toUserMessage,
@@ -45,6 +46,7 @@ export default function App() {
   /** Dernier rafraîchissement : déclencheur des requêtes et « maintenant » des cartes. */
   const [refreshedAt, setRefreshedAt] = useState(() => Date.now());
   const reducedMotion = useReducedMotion();
+  const serviceAvailable = useWeatherServiceAvailable();
 
   const highlightTimer = useRef<number | undefined>(undefined);
   const lastRefresh = useRef(refreshedAt);
@@ -187,8 +189,8 @@ export default function App() {
         return false;
       }
 
-      if (!hasApiKey) {
-        toast.error("Clé API manquante : la recherche est indisponible.");
+      if (!isWeatherServiceAvailable()) {
+        toast.error("Service météo indisponible : la recherche est impossible.");
         return false;
       }
 
@@ -260,7 +262,7 @@ export default function App() {
       <main className="flex-1">
         <Hero />
         <CityGrid
-          notice={hasApiKey ? null : <ApiKeyBanner />}
+          notice={serviceAvailable ? null : <ServiceUnavailableBanner />}
           cities={allCities}
           filteredCity={filteredCity}
           refreshedAt={refreshedAt}

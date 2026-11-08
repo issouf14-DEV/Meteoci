@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   getWeatherAt,
-  hasApiKey,
   isAbortError,
   type LocationQuery,
   locationKey,
@@ -28,9 +27,13 @@ interface InternalState extends WeatherState {
   dataKey: string | null;
 }
 
-const INITIAL: InternalState = hasApiKey
-  ? { status: "loading", data: null, error: null, code: null, dataKey: null }
-  : { status: "error", data: null, error: "Clé API manquante", code: "NO_KEY", dataKey: null };
+const INITIAL: InternalState = {
+  status: "loading",
+  data: null,
+  error: null,
+  code: null,
+  dataKey: null,
+};
 
 /**
  * Charge la météo d'un lieu pour une date cible (ms, null = maintenant).
@@ -54,7 +57,7 @@ export function useWeather(
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `requestKey` (clé stable de `queryRef.current` + `targetMs`), `refreshKey` et `attempt` sont des déclencheurs volontaires de rechargement.
   useEffect(() => {
-    if (!hasApiKey || !enabled) return;
+    if (!enabled) return;
 
     const controller = new AbortController();
     setState((prev) => ({ ...prev, status: "loading", error: null, code: null }));

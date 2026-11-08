@@ -42,8 +42,10 @@ export function combineLocal(date: string, time: string, offsetSec: number): num
   const [h, mi] = [Number(tm[1]), Number(tm[2])];
   if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
   const utc = Date.UTC(y, mo - 1, d, h, mi);
-  // Rejette les dates inexistantes (ex. 31 février) que Date.UTC « déborderait ».
-  if (new Date(utc).getUTCDate() !== d) return null;
+  // Rejette les dates inexistantes (ex. 31 février) que Date.UTC « déborderait »,
+  // et les années 0000-0099, que Date.UTC réinterprète en 1900-1999.
+  const check = new Date(utc);
+  if (check.getUTCDate() !== d || check.getUTCFullYear() !== y) return null;
   return utc - offsetSec * 1000;
 }
 
@@ -71,10 +73,11 @@ export const formatDateTime = (ms: number, offsetSec: number) =>
 
 /** Libellé du fuseau : « GMT », « GMT+1 », « GMT-3:30 ». */
 export function formatUtcOffset(offsetSec: number): string {
-  if (offsetSec === 0) return "GMT";
+  // Arrondi à la minute avant le découpage : 3599 s donne « GMT+1 », pas « GMT+0:60 ».
+  const totalMinutes = Math.round(Math.abs(offsetSec) / 60);
+  if (totalMinutes === 0) return "GMT";
   const sign = offsetSec > 0 ? "+" : "-";
-  const abs = Math.abs(offsetSec);
-  const hours = Math.floor(abs / 3600);
-  const minutes = Math.round((abs % 3600) / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
   return `GMT${sign}${hours}${minutes ? `:${pad(minutes)}` : ""}`;
 }

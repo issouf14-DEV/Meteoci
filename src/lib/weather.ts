@@ -1,5 +1,6 @@
 /**
- * Couche d'accès à l'API OpenWeatherMap.
+ * Couche d'accès aux données OpenWeatherMap, via le proxy serveur
+ * `api/weather.ts` (la clé API n'est jamais présente côté client).
  * - réponses validées à l'exécution (schémas Zod)
  * - timeout via AbortController
  * - cache mémoire (5 min) + déduplication des requêtes en vol
@@ -9,7 +10,7 @@
  * - messages d'erreur en français
  */
 
-import { API_KEY, hasApiKey } from "@/lib/env";
+import { WEATHER_API_BASE } from "@/lib/env";
 import {
   type OwmCondition,
   type OwmCurrentResponse,
@@ -35,7 +36,6 @@ const forecastSchema = z.extend(owmForecastResponseSchema, {
 type CurrentResponse = z.infer<typeof currentSchema>;
 type ForecastResponse = z.infer<typeof forecastSchema>;
 
-const API_BASE = "https://api.openweathermap.org/data/2.5";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_CONCURRENT_REQUESTS = 3;
@@ -52,8 +52,6 @@ const FORECAST_TOLERANCE_MS = 3 * 60 * 60 * 1000;
  * le premier tombe dans les 3 h, soit au moins 117 h (4 j 21 h).
  */
 export const FORECAST_HORIZON_MS = 117 * 60 * 60 * 1000;
-
-export { hasApiKey };
 
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
@@ -95,7 +93,7 @@ export interface FoundCity {
 export type WeatherErrorCode =
   | "NO_KEY"
   | "INVALID"
-  | "UNAUTHORIZED"
+  | "FORBIDDEN"
   | "NOT_FOUND"
   | "RATE_LIMIT"
   | "SERVER"
@@ -134,8 +132,8 @@ function errorFromStatus(status: number): WeatherError {
   switch (status) {
     case 400:
       return new WeatherError("INVALID", "Requête invalide.", status);
-    case 401:
-      return new WeatherError("UNAUTHORIZED", "Clé API invalide", status);
+    case 403:
+      return new WeatherError("FORBIDDEN", "Accès au service météo refusé.", status);
     case 404:
       return new WeatherError("NOT_FOUND", "Ville non trouvée", status);
     case 429:
@@ -158,6 +156,35 @@ export function toUserMessage(error: unknown): string {
 
 function abortError(): DOMException {
   return new DOMException("Requête annulée", "AbortError");
+}
+
+const noKeyError = () =>
+  new WeatherError("NO_KEY", "Service météo indisponible (serveur non configuré).", 503);
+
+/* -------------------------------------------------------------------------- */
+/*                     Disponibilité du service (proxy)                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Passe à `false` dès que le proxy signale l'absence de clé côté serveur
+ * (503 `{ error: "NO_KEY" }`) : les requêtes suivantes sont alors évitées.
+ */
+let serviceAvailable = true;
+const serviceListeners = new Set<() => void>();
+
+export const isWeatherServiceAvailable = (): boolean => serviceAvailable;
+
+export function subscribeWeatherService(listener: () => void): () => void {
+  serviceListeners.add(listener);
+  return () => {
+    serviceListeners.delete(listener);
+  };
+}
+
+function markServiceUnavailable(): void {
+  if (!serviceAvailable) return;
+  serviceAvailable = false;
+  for (const listener of serviceListeners) listener();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -279,6 +306,18 @@ export function invalidateWeatherCache(): void {
 /*                                  Requêtes                                  */
 /* -------------------------------------------------------------------------- */
 
+const proxyErrorSchema = z.object({ error: z.string() });
+
+/** Code d'erreur `{ error }` renvoyé par le proxy (null si absent ou illisible). */
+async function proxyErrorCode(response: Response): Promise<string | null> {
+  try {
+    const parsed = proxyErrorSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data.error : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJson(url: string): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -303,6 +342,10 @@ async function fetchJson(url: string): Promise<unknown> {
 
   if (!response.ok) {
     if (response.status === 429) pauseQueue(response.headers.get("Retry-After"));
+    if (response.status === 503 && (await proxyErrorCode(response)) === "NO_KEY") {
+      markServiceUnavailable();
+      throw noKeyError();
+    }
     throw errorFromStatus(response.status);
   }
 
@@ -348,9 +391,7 @@ function request<S extends z.ZodMiniType>(
   schema: S,
   signal?: AbortSignal,
 ): Promise<z.infer<S>> {
-  if (!hasApiKey) {
-    return Promise.reject(new WeatherError("NO_KEY", "Clé API manquante"));
-  }
+  if (!serviceAvailable) return Promise.reject(noKeyError());
 
   const key = cacheKey(endpoint, query);
   const cached = cache.get(key);
@@ -360,13 +401,9 @@ function request<S extends z.ZodMiniType>(
 
   let pending = inFlight.get(key) as Promise<z.infer<S>> | undefined;
   if (!pending) {
-    const params = new URLSearchParams({
-      ...queryParams(query),
-      units: "metric",
-      lang: "fr",
-      appid: API_KEY,
-    });
-    const url = `${API_BASE}/${endpoint}?${params.toString()}`;
+    // Le proxy impose lui-même units=metric et lang=fr.
+    const params = new URLSearchParams({ endpoint, ...queryParams(query) });
+    const url = `${WEATHER_API_BASE}?${params.toString()}`;
 
     const run = () => schedule(() => fetchJson(url));
     pending = run()

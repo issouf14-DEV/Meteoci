@@ -36,7 +36,7 @@ Application web de prévisions météo pour les villes de Côte d'Ivoire : condi
 | Validation      | [Zod 4](https://zod.dev/) via `zod/mini`, mode `jitless` (compatible avec la CSP)                                                                                     |
 | Qualité         | [Biome 2](https://biomejs.dev/) (lint + formatage)                                                                                                                    |
 | Polices         | Auto-hébergée : `@fontsource-variable/inter`                                                                                                                          |
-| Données         | [OpenWeatherMap](https://openweathermap.org/api)                                                                                                                      |
+| Données         | [OpenWeatherMap](https://openweathermap.org/api), via un proxy serveur (Vercel Function `api/weather.ts`)                                                             |
 
 ---
 
@@ -56,12 +56,21 @@ npm install
 
 # Configurer la clé API (fichier ignoré par git)
 cp .env.example .env.local
-# puis renseigner dans .env.local : VITE_OWM_API_KEY=votre_cle
+# puis renseigner dans .env.local : OWM_API_KEY=votre_cle
 
 npm run dev
 ```
 
-Sans clé, l'application s'affiche avec un bandeau explicatif.
+La clé n'est lue que côté serveur : en développement (`npm run dev`, `npm run preview`), Vite sert lui-même `/api/weather` avec le même gestionnaire que la Vercel Function et lit `OWM_API_KEY` dans `.env.local`. Elle n'est jamais incluse dans le JavaScript envoyé au navigateur.
+
+Sans clé côté serveur, le proxy répond `503 { "error": "NO_KEY" }` et l'application affiche un bandeau « Service météo indisponible ».
+
+### Variables d'environnement
+
+| Variable                | Où                          | Rôle                                                                                                  |
+| ----------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `OWM_API_KEY`           | `.env.local`, projet Vercel | Clé OpenWeatherMap, **serveur uniquement** (sans préfixe `VITE_`, jamais dans le bundle)              |
+| `VITE_WEATHER_API_BASE` | Optionnelle (build)         | Adresse du proxy appelée par le navigateur : URL `https` ou chemin relatif. Par défaut `/api/weather` |
 
 ### Scripts
 
@@ -88,26 +97,40 @@ Sans clé, l'application s'affiche avec un bandeau explicatif.
 
 ## Déploiement
 
+Les deux sites utilisent le même proxy météo, hébergé sur Vercel : `https://meteoci.vercel.app/api/weather`.
+
+### Vercel (site + proxy)
+
+`vercel.json` configure le build Vite (`npm run build`, sortie `dist`), les en-têtes de sécurité HTTP et le cache des ressources statiques. Le dossier `api/` est déployé automatiquement en Vercel Function (`api/weather.ts`, runtime Node.js).
+
+1. **Project → Settings → Environment Variables** : ajouter `OWM_API_KEY` (environnements Production et Preview), en la marquant **Sensitive** : c'est désormais un vrai secret, lu uniquement par la fonction et jamais par le navigateur.
+2. Supprimer l'ancienne variable `VITE_OWM_API_KEY` si elle existe.
+3. Redéployer pour que la fonction prenne en compte la variable.
+
+Vérification : `https://meteoci.vercel.app/api/weather?endpoint=weather&lat=5.36&lon=-4.01` doit renvoyer du JSON (ou `503 NO_KEY` si la variable manque).
+
 ### GitHub Pages
 
-Le workflow `.github/workflows/static.yml` s'exécute à chaque push sur `main` : `npm ci --ignore-scripts`, `npm audit`, lint, typecheck, build, puis publication de `./dist`.
+Le workflow `.github/workflows/static.yml` s'exécute à chaque push sur `main` : `npm ci --ignore-scripts`, `npm audit`, lint, typecheck, build, puis publication de `./dist`. Le build définit `VITE_WEATHER_API_BASE=https://meteoci.vercel.app/api/weather` : le site Pages appelle le proxy Vercel (requêtes CORS autorisées pour `https://issouf14-dev.github.io`).
 
-1. **Settings → Secrets and variables → Actions** : créer le secret `VITE_OWM_API_KEY`.
-2. **Settings → Pages → Source** : GitHub Actions.
-
-### Vercel
-
-`vercel.json` configure le build Vite (`npm run build`, sortie `dist`), les en-têtes de sécurité HTTP et le cache des ressources statiques. Ajouter la variable d'environnement `VITE_OWM_API_KEY` dans le projet Vercel avec le type **Config** : les variables `VITE_*` sont publiques par nature (intégrées au bundle), elles ne doivent pas être stockées comme secrets.
+1. **Settings → Pages → Source** : GitHub Actions.
+2. Aucun secret n'est nécessaire : l'ancien secret `VITE_OWM_API_KEY` peut être supprimé (**Settings → Secrets and variables → Actions**).
 
 ---
 
 ## Sécurité
 
-- **Clé API visible dans le bundle.** Toute variable `VITE_*` est intégrée au JavaScript publié : la clé reste lisible par n'importe quel visiteur, faute de proxy côté serveur. Utilisez une clé dédiée, issue d'un compte gratuit sans moyen de paiement, et surveillez son usage.
-- **Rotation.** En cas d'abus (ou pour une ancienne clé présente dans l'historique git), générez une nouvelle clé sur [openweathermap.org](https://home.openweathermap.org/api_keys), supprimez l'ancienne, puis mettez à jour `.env.local`, le secret GitHub et la variable Vercel.
-- **Secrets.** `.env.local` est ignoré par git ; seul `.env.example` est versionné. En CI, la clé provient uniquement du secret `VITE_OWM_API_KEY`.
-- **CSP stricte** : `default-src 'none'`, `script-src 'self'`, polices auto-hébergées, seule connexion autorisée vers `api.openweathermap.org`. Elle est injectée dans le build (balise meta) et envoyée en en-tête HTTP sur Vercel. Zod est configuré en `jitless` pour éviter `eval` / `new Function`.
-- **En-têtes HTTP (Vercel)** : `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`, `Cross-Origin-Opener-Policy`.
+- **Clé API côté serveur uniquement.** Le navigateur n'appelle jamais OpenWeatherMap directement : il interroge le proxy `api/weather.ts` (Vercel Function), qui ajoute la clé `OWM_API_KEY` lue dans l'environnement du serveur. Aucune clé n'est présente dans le bundle publié (ni sur Vercel, ni sur GitHub Pages).
+- **Proxy restreint** :
+  - liste blanche stricte des paramètres : `endpoint` (`weather` ou `forecast`) et un seul lieu (`lat` + `lon` bornés, `id` numérique, ou `q` validé avec la même règle que la recherche, éventuellement suivi d'un code pays `,CC`) ; tout autre paramètre est refusé (`400`) et `units=metric`, `lang=fr` sont imposés ;
+  - timeout de la requête amont (8 s), erreurs converties en JSON `{ "error": ... }` (`400`, `403`, `404`, `429`, `502`, `503`, `504`) sans jamais renvoyer la clé ni l'URL amont ;
+  - CORS limité à `https://meteoci.vercel.app`, `https://issouf14-dev.github.io`, aux déploiements de prévisualisation Vercel du projet et à `localhost` (ports 5173 et 4173) ; une autre origine reçoit `403` sans en-tête CORS ;
+  - cache CDN des réponses réussies (`s-maxage=300, stale-while-revalidate=600`, `Vary: Origin`) : les requêtes répétées n'atteignent pas OpenWeatherMap ;
+  - limitation de débit en mémoire (60 requêtes par minute et par IP). Elle est **best effort** : les compteurs sont propres à chaque instance de la fonction et réinitialisés à son recyclage ; le cache CDN et les quotas d'OpenWeatherMap restent les vraies protections.
+- **Rotation.** L'ancienne clé a été publiée dans des bundles (variable `VITE_*`) : générez une nouvelle clé sur [openweathermap.org](https://home.openweathermap.org/api_keys), supprimez l'ancienne, puis mettez à jour `.env.local` et la variable Vercel `OWM_API_KEY`.
+- **Secrets.** `.env.local` est ignoré par git ; seul `.env.example` est versionné. La CI GitHub Pages n'a besoin d'aucun secret.
+- **CSP stricte** : `default-src 'none'`, `script-src 'self'`, polices auto-hébergées, connexions limitées à `'self'` et `https://meteoci.vercel.app` (proxy). Elle est injectée dans le build (balise meta) et envoyée en en-tête HTTP sur Vercel. Zod est configuré en `jitless` pour éviter `eval` / `new Function`.
+- **En-têtes HTTP (Vercel)** : `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`, `Cross-Origin-Opener-Policy` ; pour `/api/*` : `nosniff`, `X-Frame-Options: DENY`, CSP `default-src 'none'`, `X-Robots-Tag: noindex`.
 - **Validation et XSS** : réponses de l'API, saisie de recherche et données `localStorage` validées par Zod ; aucun `innerHTML` ni `dangerouslySetInnerHTML`.
 - **Chaîne d'approvisionnement** : actions GitHub épinglées par SHA de commit, `npm ci --ignore-scripts`, `npm audit`, mises à jour hebdomadaires via Dependabot (npm et GitHub Actions).
 
@@ -117,6 +140,8 @@ Le workflow `.github/workflows/static.yml` s'exécute à chaque push sur `main` 
 
 ```
 ├── index.html                  # Point d'entrée Vite
+├── api/
+│   └── weather.ts              # Vercel Function : proxy OpenWeatherMap (clé côté serveur)
 ├── public/
 │   ├── favicon.svg
 │   ├── theme-init.js           # Applique le thème avant le rendu (pas de flash)
@@ -132,12 +157,14 @@ Le workflow `.github/workflows/static.yml` s'exécute à chaque push sur `main` 
 │   │   ├── rotating-title.tsx, search-bar.tsx, theme-provider.tsx
 │   │   └── ui/                 # shadcn/ui : badge, button, calendar, card, input,
 │   │                           #   popover, separator, skeleton, sonner
-│   ├── hooks/                  # use-reduced-motion, use-weather, use-weather-activity
+│   ├── hooks/                  # use-reduced-motion, use-weather, use-weather-activity,
+│   │                           #   use-weather-service
 │   └── lib/                    # weather, schemas, zod, env, cities, date, storage,
 │                               #   validation, site, brand-icons, weather-icons, utils
 ├── biome.json                  # Lint + formatage
 ├── vercel.json                 # Build, en-têtes de sécurité, cache
-├── vite.config.ts              # Alias @, Tailwind, base relative, CSP de production
+├── vite.config.ts              # Alias @, Tailwind, base relative, CSP, proxy météo local
+├── tsconfig.api.json           # Vérification des types de api/
 └── .github/                    # Workflow Pages et Dependabot
 ```
 

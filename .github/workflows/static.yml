@@ -45,10 +45,15 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Tests
+        run: npm test
+
+      # Aucune clé API dans le build : le site publié appelle le proxy météo
+      # hébergé sur Vercel (la clé OpenWeatherMap reste côté serveur).
       - name: Build
         run: npm run build
         env:
-          VITE_OWM_API_KEY: ${{ secrets.VITE_OWM_API_KEY }}
+          VITE_WEATHER_API_BASE: https://meteoci.vercel.app/api/weather
 
       - name: Setup Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

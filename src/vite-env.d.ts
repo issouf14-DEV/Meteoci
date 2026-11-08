@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_OWM_API_KEY?: string;
+  /** Adresse du proxy météo (optionnelle, "/api/weather" par défaut). */
+  readonly VITE_WEATHER_API_BASE?: string;
 }
 
 interface ImportMeta {

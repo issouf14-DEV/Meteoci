@@ -1,10 +1,10 @@
 import { Globe, Loader2, MapPin, Search, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { useWeatherServiceAvailable } from "@/hooks/use-weather-service";
 import { type City, normalizeName } from "@/lib/cities";
 import { cn } from "@/lib/utils";
 import { CITY_NAME_MAX_LENGTH } from "@/lib/validation";
-import { hasApiKey } from "@/lib/weather";
 
 type Option = { kind: "city"; city: City } | { kind: "search"; label: string };
 
@@ -34,6 +34,7 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
+  const serviceAvailable = useWeatherServiceAvailable();
   const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   const options = useMemo<Option[]>(() => {
@@ -49,12 +50,12 @@ export function SearchBar({ cities, onSelectCity, onSearch, onClear, className }
       .slice(0, MAX_SUGGESTIONS);
     const result: Option[] = matches.map((city) => ({ kind: "city", city }));
     const exact = matches.some((city) => normalizeName(city.name) === needle);
-    // Sans clé API, la recherche en ligne est impossible : pas d'option « Rechercher ».
-    if (hasApiKey && !exact && value.trim().length >= 2) {
+    // Service météo indisponible : pas d'option « Rechercher » en ligne.
+    if (serviceAvailable && !exact && value.trim().length >= 2) {
       result.push({ kind: "search", label: value.trim().slice(0, CITY_NAME_MAX_LENGTH) });
     }
     return result;
-  }, [cities, value]);
+  }, [cities, value, serviceAvailable]);
 
   const expanded = open && options.length > 0;
 

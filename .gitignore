@@ -14,3 +14,6 @@ dist/
 # Éditeur / OS
 .vscode/
 .DS_Store
+
+# Couverture de tests
+coverage/

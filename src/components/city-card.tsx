@@ -3,7 +3,6 @@ import {
   CalendarClock,
   CloudOff,
   Droplets,
-  KeyRound,
   Loader2,
   RotateCcw,
   RotateCw,
@@ -24,6 +23,7 @@ import {
 
 import { DateTimePicker } from "@/components/date-time-picker";
 import { useWeather } from "@/hooks/use-weather";
+import { useWeatherServiceAvailable } from "@/hooks/use-weather-service";
 import type { City } from "@/lib/cities";
 import {
   combineLocal,
@@ -37,7 +37,6 @@ import { cn } from "@/lib/utils";
 import {
   CURRENT_TOLERANCE_MS,
   FORECAST_HORIZON_MS,
-  hasApiKey,
   RETRYABLE_CODES,
   type WeatherErrorCode,
   type WeatherSnapshot,
@@ -127,6 +126,7 @@ function CityCardImpl({
   const { targetMs, notice } = resolveTarget(picked, now, offset);
 
   const weather = useWeather(city.query, targetMs, refreshedAt, !hidden);
+  const serviceAvailable = useWeatherServiceAvailable();
   const data = weather.data;
   const stale = weather.status === "error" && data !== null;
   const refreshing = weather.status === "loading" && data !== null;
@@ -198,7 +198,7 @@ function CityCardImpl({
         </p>
       )}
 
-      <fieldset className="city-card__inputs" disabled={!hasApiKey}>
+      <fieldset className="city-card__inputs" disabled={!serviceAvailable}>
         <legend className="sr-only">
           Date et heure de la prévision pour {city.name} (heure locale, {tzLabel})
         </legend>
@@ -216,13 +216,13 @@ function CityCardImpl({
           onDateChange={(date) => updateSelection({ date })}
           onTimeChange={(time) => updateSelection({ time })}
           onReset={() => setSelection(null)}
-          disabled={!hasApiKey}
+          disabled={!serviceAvailable}
         />
         {notice && <p className="city-card__note">{notice}</p>}
       </fieldset>
 
-      {!hasApiKey ? (
-        <PlaceholderBody tone="idle" icon={<KeyRound className="city-card__icon" />}>
+      {!serviceAvailable ? (
+        <PlaceholderBody tone="idle" icon={<CloudOff className="city-card__icon" />}>
           <p className="city-card__condition">Données indisponibles</p>
         </PlaceholderBody>
       ) : data ? (
